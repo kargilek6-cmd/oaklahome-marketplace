@@ -57,7 +57,6 @@ export default function Home() {
     try {
       if (modalType === 'signup') {
         // ================= BUYER SIGN UP =================
-        // Check if the buyer already exists
         const { data: existingBuyer } = await supabase
           .from('buyers')
           .select('*')
@@ -71,7 +70,6 @@ export default function Home() {
           return;
         }
 
-        // Save new buyer to "buyers" table
         const { error: signUpError } = await supabase.from('buyers').insert([
           {
             email: authEmail,
@@ -82,7 +80,6 @@ export default function Home() {
 
         if (signUpError) throw signUpError;
 
-        // Auto-login the new buyer
         login({
           email: authEmail,
           role: 'BUYER',
@@ -92,8 +89,7 @@ export default function Home() {
         setIsModalOpen(false);
       } else {
         // ================= UNIFIED SIGN IN =================
-        // 1. Check if they are a Buyer (Retailer)
-        const { data: buyerUser, error: buyerError } = await supabase
+        const { data: buyerUser } = await supabase
           .from('buyers')
           .select('*')
           .eq('email', authEmail)
@@ -111,8 +107,7 @@ export default function Home() {
           return;
         }
 
-        // 2. If not found in Buyers, check if they are a Seller (Brand)
-        const { data: brandUser, error: brandError } = await supabase
+        const { data: brandUser } = await supabase
           .from('brands')
           .select('*')
           .eq('email', authEmail)
@@ -133,7 +128,6 @@ export default function Home() {
           return;
         }
 
-        // If not found in either table
         alert('Invalid email or password. Please try again.');
       }
     } catch (err: any) {
@@ -141,20 +135,17 @@ export default function Home() {
       alert('Authentication error: ' + err.message);
     } finally {
       setAuthLoading(false);
-      // Clear auth fields
       setAuthEmail('');
       setAuthPhone('');
       setAuthPassword('');
     }
   };
 
-  // Open modal helper
   const openAuthModal = (type: 'signin' | 'signup') => {
     setModalType(type);
     setIsModalOpen(true);
   };
 
-  // Filter products by search input
   const filteredProducts = products.filter((product) => {
     const titleMatch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
     const brandMatch = product.brand_name
@@ -201,7 +192,6 @@ export default function Home() {
 
           {/* Navigation Links */}
           <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
-            {/* DYNAMIC HEADER LOGIC BASED ON LOGIN SESSION */}
             {user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -218,7 +208,6 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    {/* Logged in as a Retail Buyer */}
                     <span className="text-gray-400 font-medium">
                       Retailer: <strong className="text-gray-950">{user.email.split('@')[0]}</strong>
                     </span>
@@ -233,7 +222,6 @@ export default function Home() {
               </>
             ) : (
               <>
-                {/* Logged out: Show standard minimal Faire header buttons */}
                 <Link 
                   href="/seller/onboarding" 
                   className="hover:text-gray-900 transition"
@@ -273,12 +261,58 @@ export default function Home() {
         </div>
       </header>
 
-      {/* POPUP AUTH MODAL (FAIRE STYLE OVERLAY) */}
+      {/* ================= HERO VIDEO BANNER (STABLE PEXELS CDN) ================= */}
+      <div className="relative w-full h-[550px] bg-gray-950 overflow-hidden">
+        {/* 1. Background Video (Premium Pexels CDN, silent loop) */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          poster="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1600&auto=format&fit=crop&q=80" // High-res poster of boutique interior as a stable fallback
+          className="absolute inset-0 w-full h-full object-cover z-0 opacity-80"
+        >
+          {/* Stable global Pexels MP4 link designed for developer hotlinking */}
+          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c02cba3d7897c0d0272b11e2f758d601&profile_id=139&oauth2_token_id=57447761" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* 2. Subtle Dark Mask for High Text Readability */}
+        <div className="absolute inset-0 bg-black/40 z-10" />
+
+        {/* 3. Text Overlay content (Left-aligned, padded) */}
+        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto">
+          <div className="max-w-xl text-white space-y-6">
+            <h2 className="text-4xl md:text-5xl font-serif font-light leading-tight tracking-tight">
+              Find your next bestseller
+            </h2>
+            <p className="text-lg md:text-xl font-normal text-gray-100 leading-relaxed">
+              Sign up to unlock wholesale pricing with over 1000 curated brands.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+              <button 
+                onClick={() => openAuthModal('signup')}
+                className="bg-white hover:bg-gray-100 text-gray-950 font-bold px-8 py-3.5 rounded text-sm transition duration-150 shadow-md"
+              >
+                Sign up to buy
+              </button>
+              <div className="text-sm font-semibold text-gray-200">
+                Are you a brand?{' '}
+                <Link href="/seller/onboarding" className="text-white underline hover:text-gray-100 transition font-bold">
+                  Sign up to sell
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* POPUP AUTH MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
-            {/* Close Button (X) */}
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2"
@@ -307,7 +341,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Show Phone Field only on Sign Up to Buy */}
                 {modalType === 'signup' && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number *</label>
@@ -346,7 +379,6 @@ export default function Home() {
                 </button>
               </form>
 
-              {/* Toggle links at the bottom */}
               <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                 {modalType === 'signin' ? (
                   <p>
