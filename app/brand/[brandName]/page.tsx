@@ -1,20 +1,28 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import Link from 'next/link';
 
-// This tells Next.js to fetch fresh database data every time the page is loaded
 export const revalidate = 0;
 
-export default async function Home() {
-  // Fetch our products from the Supabase database
+interface BrandPageProps {
+  params: Promise<{ brandName: string }>;
+}
+
+export default async function BrandPage({ params }: BrandPageProps) {
+  // Await params to extract the dynamic brandName from the browser URL
+  const { brandName } = await params;
+  const decodedBrandName = decodeURIComponent(brandName);
+
+  // Fetch only products belonging to this specific brand
   const { data: products, error } = await supabase
     .from('products')
-    .select('*');
+    .select('*')
+    .eq('brand_name', decodedBrandName);
 
   if (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching brand products:', error);
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
-        <p className="text-red-500 font-medium">Error loading products. Check database keys.</p>
+        <p className="text-red-500 font-medium">Error loading brand profile.</p>
       </div>
     );
   }
@@ -23,19 +31,16 @@ export default async function Home() {
     <main className="min-h-screen bg-gray-50 py-12 px-6">
       <header className="max-w-6xl mx-auto mb-12 flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-black text-gray-950 tracking-tight">
-            Oaklahome Marketplace
+          <Link href="/" className="text-sm font-bold text-blue-600 hover:underline">
+            ← Back to Marketplace
+          </Link>
+          <h1 className="text-4xl font-black text-gray-950 tracking-tight mt-4">
+            {decodedBrandName} Storefront
           </h1>
           <p className="text-gray-600 mt-2 text-lg">
-            Wholesale B2B connection for local retailers.
+            Browse all wholesale products available from {decodedBrandName}.
           </p>
         </div>
-        <Link 
-          href="/seller/add-product" 
-          className="bg-blue-600 text-white font-bold px-5 py-3 rounded-xl hover:bg-blue-700 transition"
-        >
-          Add Product
-        </Link>
       </header>
 
       <div className="max-w-6xl mx-auto">
@@ -56,16 +61,6 @@ export default async function Home() {
                   </div>
                 )}
                 <div className="p-5">
-                  {/* BRAND TAG LINK */}
-                  {product.brand_name && (
-                    <Link 
-                      href={`/brand/${encodeURIComponent(product.brand_name)}`}
-                      className="inline-block bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs px-2.5 py-1 rounded-full mb-3 transition"
-                    >
-                      by {product.brand_name}
-                    </Link>
-                  )}
-
                   <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
                   <p className="text-gray-600 text-sm mt-2 line-clamp-2">
                     {product.description}
@@ -96,8 +91,7 @@ export default async function Home() {
           </div>
         ) : (
           <div className="bg-white border rounded-xl p-12 text-center shadow-sm">
-            <p className="text-gray-500 text-lg">No products found in your database.</p>
-            <p className="text-gray-400 text-sm mt-1">Add a row in your Supabase table to see it here!</p>
+            <p className="text-gray-500 text-lg">No products found for this brand.</p>
           </div>
         )}
       </div>
