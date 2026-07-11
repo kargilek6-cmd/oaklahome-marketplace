@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../context/AuthContext'; // Import our new login hook
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { login } = useAuth(); // Connect to our login control room
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -58,7 +60,16 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      // Success! Redirect them to add their first product, pre-filling their brand name
+      // SUCCESS! Automatically log in the new seller instantly
+      login({
+        email: email,
+        role: 'SELLER',
+        brandName: brandName,
+        firstName: firstName,
+        lastName: lastName,
+      });
+
+      // Redirect them to their new dashboard page (pre-filled with their brand)
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
       console.error('Onboarding submission failed:', err);
@@ -208,7 +219,7 @@ export default function OnboardingPage() {
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Website URL (optional)</label>
                 <input
-                  type="text" // Changed to text to allow handle placeholders
+                  type="text"
                   placeholder="e.g., https://example.com or instagram handle"
                   value={noWebsite ? '' : websiteUrl}
                   disabled={noWebsite}
@@ -216,7 +227,6 @@ export default function OnboardingPage() {
                   className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 
-                {/* I DON'T HAVE A WEBSITE CHECKBOX */}
                 <div className="flex items-center space-x-2 mt-3">
                   <input
                     type="checkbox"

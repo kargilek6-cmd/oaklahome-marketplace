@@ -3,13 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
+import { useAuth } from './context/AuthContext'; // Import our auth hook
 import Link from 'next/link';
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(''); // State to track search input
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const { cart, addToCart } = useCart();
+  const { user, login, logout } = useAuth();
+
+  // AUTH MODAL STATES
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'signin' | 'signup'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Calculate the total number of items in the cart
   const totalCartItems = cart.reduce((total, item) => total + item.quantity, 0);
@@ -32,7 +43,118 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // DYNAMIC SEARCH: Filter products by title OR brand name in real-time as the user types
+  // Handle Authentication (Sign In & Sign Up to Buy)
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    if (!authEmail || !authPassword || (modalType === 'signup' && !authPhone)) {
+      alert('Please fill out all required fields.');
+      setAuthLoading(false);
+      return;
+    }
+
+    try {
+      if (modalType === 'signup') {
+        // ================= BUYER SIGN UP =================
+        // Check if the buyer already exists
+        const { data: existingBuyer } = await supabase
+          .from('buyers')
+          .select('*')
+          .eq('email', authEmail)
+          .maybeSingle();
+
+        if (existingBuyer) {
+          alert('An account with this email already exists. Please sign in.');
+          setModalType('signin');
+          setAuthLoading(false);
+          return;
+        }
+
+        // Save new buyer to "buyers" table
+        const { error: signUpError } = await supabase.from('buyers').insert([
+          {
+            email: authEmail,
+            phone: authPhone,
+            password: authPassword,
+          },
+        ]);
+
+        if (signUpError) throw signUpError;
+
+        // Auto-login the new buyer
+        login({
+          email: authEmail,
+          role: 'BUYER',
+        });
+
+        alert('Account created successfully! Welcome to Oaklahome.');
+        setIsModalOpen(false);
+      } else {
+        // ================= UNIFIED SIGN IN =================
+        // 1. Check if they are a Buyer (Retailer)
+        const { data: buyerUser, error: buyerError } = await supabase
+          .from('buyers')
+          .select('*')
+          .eq('email', authEmail)
+          .eq('password', authPassword)
+          .maybeSingle();
+
+        if (buyerUser) {
+          login({
+            email: buyerUser.email,
+            role: 'BUYER',
+          });
+          setIsModalOpen(false);
+          alert('Logged in as Retailer!');
+          setAuthLoading(false);
+          return;
+        }
+
+        // 2. If not found in Buyers, check if they are a Seller (Brand)
+        const { data: brandUser, error: brandError } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('email', authEmail)
+          .eq('password', authPassword)
+          .maybeSingle();
+
+        if (brandUser) {
+          login({
+            email: brandUser.email,
+            role: 'SELLER',
+            brandName: brandUser.brand_name,
+            firstName: brandUser.first_name,
+            lastName: brandUser.last_name,
+          });
+          setIsModalOpen(false);
+          alert(`Welcome back, ${brandUser.brand_name}!`);
+          setAuthLoading(false);
+          return;
+        }
+
+        // If not found in either table
+        alert('Invalid email or password. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Authentication failed:', err);
+      alert('Authentication error: ' + err.message);
+    } finally {
+      setAuthLoading(false);
+      // Clear auth fields
+      setAuthEmail('');
+      setAuthPhone('');
+      setAuthPassword('');
+    }
+  };
+
+  // Open modal helper
+  const openAuthModal = (type: 'signin' | 'signup') => {
+    setModalType(type);
+    setIsModalOpen(true);
+  };
+
+  // Filter products by search input
   const filteredProducts = products.filter((product) => {
     const titleMatch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
     const brandMatch = product.brand_name
@@ -51,19 +173,19 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* MINIMAL FAIRE-STYLE HEADER */}
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-50 px-6 py-4">
+      
+      {/* MINIMAL HEADER */}
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* 1. LOGO (Left) */}
+          {/* Logo */}
           <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
             OAKLAHOME
           </Link>
 
-          {/* 2. MINIMAL ROUNDED SEARCH BAR (Middle) */}
+          {/* Search bar */}
           <div className="flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-              {/* Magnifying Glass SVG Icon */}
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
@@ -77,31 +199,65 @@ export default function Home() {
             />
           </div>
 
-          {/* 3. NAVIGATION LINKS (Right) */}
+          {/* Navigation Links */}
           <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
-            {/* LINK CORRECTLY POINTING TO ONBOARDING FLOW */}
-            <Link 
-              href="/seller/onboarding" 
-              className="hover:text-gray-900 transition"
-            >
-              Sign up to sell
-            </Link>
-            
-            <button 
-              onClick={() => alert("Sign In coming in a future step!")}
-              className="hover:text-gray-900 transition"
-            >
-              Sign in
-            </button>
+            {/* DYNAMIC HEADER LOGIC BASED ON LOGIN SESSION */}
+            {user ? (
+              <>
+                {user.role === 'SELLER' ? (
+                  <>
+                    <span className="text-gray-400 font-medium">
+                      Welcome, <strong className="text-gray-950">{user.brandName}</strong>
+                    </span>
+                    <Link 
+                      href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
+                      className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 shadow"
+                    >
+                      Go to Portal 📦
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    {/* Logged in as a Retail Buyer */}
+                    <span className="text-gray-400 font-medium">
+                      Retailer: <strong className="text-gray-950">{user.email.split('@')[0]}</strong>
+                    </span>
+                    <button 
+                      onClick={logout}
+                      className="text-red-500 hover:text-red-700 hover:underline transition"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Logged out: Show standard minimal Faire header buttons */}
+                <Link 
+                  href="/seller/onboarding" 
+                  className="hover:text-gray-900 transition"
+                >
+                  Sign up to sell
+                </Link>
+                
+                <button 
+                  onClick={() => openAuthModal('signin')}
+                  className="hover:text-gray-900 transition"
+                >
+                  Sign in
+                </button>
 
-            <button 
-              onClick={() => alert("Sign Up to buy coming in a future step!")}
-              className="bg-gray-900 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150"
-            >
-              Sign up to buy
-            </button>
+                <button 
+                  onClick={() => openAuthModal('signup')}
+                  className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150"
+                >
+                  Sign up to buy
+                </button>
+              </>
+            )}
 
-            {/* FLOATING CART ICON (Visible only if cart has items) */}
+            {/* Floating Cart Icon */}
             {totalCartItems > 0 && (
               <Link 
                 href="/cart" 
@@ -116,6 +272,109 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      {/* POPUP AUTH MODAL (FAIRE STYLE OVERLAY) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
+          <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+            
+            {/* Close Button (X) */}
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2"
+            >
+              ✕
+            </button>
+
+            <div className="text-center">
+              <span className="font-serif text-sm tracking-[0.25em] font-black text-gray-400 block mb-6">
+                OAKLAHOME
+              </span>
+              <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-6">
+                {modalType === 'signin' ? 'Sign in to Oaklahome' : 'Sign up to buy wholesale'}
+              </h2>
+
+              <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email address *</label>
+                  <input
+                    type="email"
+                    placeholder="e.g., storeowner@example.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                    required
+                  />
+                </div>
+
+                {/* Show Phone Field only on Sign Up to Buy */}
+                {modalType === 'signup' && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number *</label>
+                    <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
+                      <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
+                      <input
+                        type="tel"
+                        placeholder="98765 43210"
+                        value={authPhone}
+                        onChange={(e) => setAuthPhone(e.target.value)}
+                        className="w-full px-4 py-3 text-sm text-gray-900 focus:outline-none bg-transparent"
+                        required={modalType === 'signup'}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Password *</label>
+                  <input
+                    type="password"
+                    placeholder="Enter password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                >
+                  {authLoading ? 'Processing...' : 'Next'}
+                </button>
+              </form>
+
+              {/* Toggle links at the bottom */}
+              <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                {modalType === 'signin' ? (
+                  <p>
+                    New to Oaklahome?{' '}
+                    <button 
+                      onClick={() => setModalType('signup')}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Sign up to buy
+                    </button>
+                  </p>
+                ) : (
+                  <p>
+                    Already have an account?{' '}
+                    <button 
+                      onClick={() => setModalType('signin')}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </p>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PRODUCT GRID SECTION */}
       <div className="max-w-7xl mx-auto py-12 px-6">
