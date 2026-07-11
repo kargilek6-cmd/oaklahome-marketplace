@@ -261,45 +261,63 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= HERO VIDEO BANNER (STABLE PEXELS CDN) ================= */}
-      <div className="relative w-full h-[550px] bg-gray-950 overflow-hidden">
-        {/* 1. Background Video (Premium Pexels CDN, silent loop) */}
+      {/* ================= AESTHETIC HERO VIDEO BANNER (WITH CSS PHOTO FALLBACK) ================= */}
+      <div 
+        className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
+        style={{ 
+          backgroundImage: "url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&auto=format&fit=crop&q=80')",
+          backgroundColor: '#0a0a0a'
+        }}
+      >
+        {/* Background Video (Muted, looping, auto-plays on support) */}
         <video 
           autoPlay 
           loop 
           muted 
           playsInline 
-          poster="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1600&auto=format&fit=crop&q=80" // High-res poster of boutique interior as a stable fallback
-          className="absolute inset-0 w-full h-full object-cover z-0 opacity-80"
+          className="absolute inset-0 w-full h-full object-cover z-0 opacity-85"
         >
-          {/* Stable global Pexels MP4 link designed for developer hotlinking */}
+          {/* Stable open-source external MP4 showing shoppers inside a boutique shop */}
           <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c02cba3d7897c0d0272b11e2f758d601&profile_id=139&oauth2_token_id=57447761" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
-        {/* 2. Subtle Dark Mask for High Text Readability */}
-        <div className="absolute inset-0 bg-black/40 z-10" />
+        {/* 2. Soft Dark Vignette Mask for High-End Text Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-transparent z-10" />
 
-        {/* 3. Text Overlay content (Left-aligned, padded) */}
-        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto">
+        {/* 3. AESTHETIC TYPOGRAPHY OVERLAY */}
+        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
           <div className="max-w-xl text-white space-y-6">
-            <h2 className="text-4xl md:text-5xl font-serif font-light leading-tight tracking-tight">
+            
+            {/* Elegant Top Tag */}
+            <span className="text-[10px] md:text-xs font-bold text-neutral-300 tracking-[0.35em] uppercase block">
+              OAKLAHOME wholesale
+            </span>
+
+            {/* Premium Editorial Serif Headline */}
+            <h2 
+              className="text-5xl md:text-6xl font-light leading-[1.1] tracking-tight text-white"
+              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+            >
               Find your next bestseller
             </h2>
-            <p className="text-lg md:text-xl font-normal text-gray-100 leading-relaxed">
+
+            {/* Minimal, tracked subtitle */}
+            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light max-w-lg leading-relaxed">
               Sign up to unlock wholesale pricing with over 1000 curated brands.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
               <button 
                 onClick={() => openAuthModal('signup')}
-                className="bg-white hover:bg-gray-100 text-gray-950 font-bold px-8 py-3.5 rounded text-sm transition duration-150 shadow-md"
+                className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
               >
                 Sign up to buy
               </button>
-              <div className="text-sm font-semibold text-gray-200">
+              <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
                 Are you a brand?{' '}
-                <Link href="/seller/onboarding" className="text-white underline hover:text-gray-100 transition font-bold">
+                <Link href="/seller/onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
                   Sign up to sell
                 </Link>
               </div>
