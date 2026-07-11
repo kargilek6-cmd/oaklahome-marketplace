@@ -1,11 +1,9 @@
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 
-// This tells Next.js to fetch fresh database data every time the page is loaded
 export const revalidate = 0;
 
 export default async function Home() {
-  // Fetch our products from the Supabase database
   const { data: products, error } = await supabase
     .from('products')
     .select('*');
@@ -56,39 +54,38 @@ export default async function Home() {
                   </div>
                 )}
                 <div className="p-5">
-                  {/* BRAND TAG LINK */}
-                  {product.brand_name && (
-                    <Link 
-                      href={`/brand/${encodeURIComponent(product.brand_name)}`}
-                      className="inline-block bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs px-2.5 py-1 rounded-full mb-3 transition"
-                    >
-                      by {product.brand_name}
-                    </Link>
-                  )}
+                  {/* 1. PRICE & MSRP */}
+                  <div className="flex items-baseline space-x-2">
+                    <span className="text-lg font-black text-gray-950">
+                      ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                    </span>
+                    <span className="text-xs text-gray-400 line-through">
+                      MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
 
-                  <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
-                  <p className="text-gray-600 text-sm mt-2 line-clamp-2">
+                  {/* 2. PRODUCT TITLE */}
+                  <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2 min-h-[3rem]">
+                    {product.title}
+                  </h3>
+
+                  <p className="text-gray-500 text-sm mt-1 line-clamp-2">
                     {product.description}
                   </p>
                   
-                  {/* Wholesale Pricing Info */}
-                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
-                        Wholesale Price
-                      </p>
-                      <p className="text-2xl font-black text-gray-950">
-                        ${product.price ? product.price.toFixed(2) : '0.00'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
-                        Min. Order (MOQ)
-                      </p>
-                      <p className="text-base font-bold text-gray-700">
-                        {product.moq || 1} units
-                      </p>
-                    </div>
+                  {/* 3. BRAND & MINIMUM ORDER */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    {product.brand_name && (
+                      <Link 
+                        href={`/brand/${encodeURIComponent(product.brand_name)}`}
+                        className="block text-sm font-bold text-gray-950 hover:underline hover:text-blue-600 transition"
+                      >
+                        {product.brand_name}
+                      </Link>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1 font-medium">
+                      ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+                    </p>
                   </div>
                 </div>
               </div>
