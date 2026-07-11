@@ -261,11 +261,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= AESTHETIC HERO VIDEO BANNER (WITH CSS PHOTO FALLBACK) ================= */}
+      {/* ================= AESTHETIC HOME DECOR HERO BANNER (WITH CSS PHOTO FALLBACK) ================= */}
       <div 
         className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
         style={{ 
-          backgroundImage: "url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&auto=format&fit=crop&q=80')",
+          backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')", // Gorgeous warm interior design photo
           backgroundColor: '#0a0a0a'
         }}
       >
@@ -277,21 +277,21 @@ export default function Home() {
           playsInline 
           className="absolute inset-0 w-full h-full object-cover z-0 opacity-85"
         >
-          {/* Stable open-source external MP4 showing shoppers inside a boutique shop */}
-          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c02cba3d7897c0d0272b11e2f758d601&profile_id=139&oauth2_token_id=57447761" type="video/mp4" />
+          {/* Stable high-definition home remodeling and warm interior decor video clip */}
+          <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
         {/* 2. Soft Dark Vignette Mask for High-End Text Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
         {/* 3. AESTHETIC TYPOGRAPHY OVERLAY */}
         <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
           <div className="max-w-xl text-white space-y-6">
             
             {/* Elegant Top Tag */}
-            <span className="text-[10px] md:text-xs font-bold text-neutral-300 tracking-[0.35em] uppercase block">
-              OAKLAHOME wholesale
+            <span className="text-[10px] md:text-xs font-bold text-amber-300 tracking-[0.35em] uppercase block">
+              OAKLAHOME HOME DECOR
             </span>
 
             {/* Premium Editorial Serif Headline */}
@@ -299,7 +299,7 @@ export default function Home() {
               className="text-5xl md:text-6xl font-light leading-[1.1] tracking-tight text-white"
               style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
             >
-              Find your next bestseller
+              Curated wholesale home decor.
             </h2>
 
             {/* Minimal, tracked subtitle */}
