@@ -158,17 +158,21 @@ export default function CartPage() {
                       </p>
                     </div>
 
-                    <button
-                      disabled={!isMinMet}
-                      onClick={() => alert(`Proceeding to checkout for ${brandName}!`)}
-                      className={`w-full md:w-auto font-black px-6 py-3.5 rounded-xl transition duration-150 text-sm ${
-                        isMinMet 
-                          ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer active:scale-95' 
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {isMinMet ? `Checkout from ${brandName}` : `Minimum Order Unmet`}
-                    </button>
+                    {isMinMet ? (
+  <Link
+    href={`/checkout?brand=${encodeURIComponent(brandName)}`}
+    className="w-full md:w-auto text-center font-black px-6 py-3.5 rounded-xl bg-green-600 hover:bg-green-700 text-white cursor-pointer active:scale-95 transition duration-150 text-sm"
+  >
+    Checkout from {brandName}
+  </Link>
+) : (
+  <button
+    disabled
+    className="w-full md:w-auto font-black px-6 py-3.5 rounded-xl bg-gray-200 text-gray-400 cursor-not-allowed text-sm"
+  >
+    Minimum Order Unmet
+  </button>
+)}
                   </div>
                 </div>
               );

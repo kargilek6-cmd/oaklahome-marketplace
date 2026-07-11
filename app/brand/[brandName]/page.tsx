@@ -59,27 +59,40 @@ export default async function BrandPage({ params }: BrandPageProps) {
                   </div>
                 )}
                 <div className="p-5">
-                  {/* PRICE & MSRP */}
-                  <div className="flex items-baseline space-x-2">
-                    <span className="text-lg font-black text-gray-950">
-                      ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                    </span>
-                    <span className="text-xs text-gray-400 line-through">
-                      MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  {/* PRODUCT TITLE */}
-                  <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2 min-h-[3rem]">
-                    {product.title}
-                  </h3>
-
-                  <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                  <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
+                  <p className="text-gray-600 text-sm mt-2 line-clamp-2">
                     {product.description}
                   </p>
                   
-                  {/* BRAND & MINIMUM ORDER */}
-                  <div className="mt-6 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-bold text-gray-950">
-                      {decodedBrandName}
-                    </p>
+                  {/* Pricing Info */}
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Wholesale Price
+                      </p>
+                      <p className="text-2xl font-black text-gray-950">
+                        ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
+                        Brand Min. Order
+                      </p>
+                      <p className="text-base font-bold text-gray-700">
+                        ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border rounded-xl p-12 text-center shadow-sm">
+            <p className="text-gray-500 text-lg">No products found for this brand.</p>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
