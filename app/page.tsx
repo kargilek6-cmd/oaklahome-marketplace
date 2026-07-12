@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
-import { useAuth } from './context/AuthContext'; // Import our auth hook
+import { useAuth } from './context/AuthContext'; 
 import Link from 'next/link';
 
 export default function Home() {
@@ -60,7 +60,6 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
-  // Handle OTP Sending
   const handleSendOtp = () => {
     if (!authPhone || authPhone.length < 10) {
       alert('Please enter a valid 10-digit mobile number.');
@@ -73,7 +72,6 @@ export default function Home() {
     setAuthLoading(false);
   };
 
-  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -87,7 +85,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -121,7 +118,6 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- UNIFIED SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -141,27 +137,7 @@ export default function Home() {
             return;
           }
 
-          const { data: brandUser } = await supabase
-            .from('brands')
-            .select('*')
-            .eq('phone', authPhone)
-            .maybeSingle();
-
-          if (brandUser) {
-            login({
-              email: brandUser.email,
-              role: 'SELLER',
-              brandName: brandUser.brand_name,
-              firstName: brandUser.first_name,
-              lastName: brandUser.last_name,
-            });
-            setIsModalOpen(false);
-            alert(`Welcome back, ${brandUser.brand_name}!`);
-            setAuthLoading(false);
-            return;
-          }
-
-          alert('No registered account found with this phone number. Please sign up first.');
+          alert('No registered buyer account found with this phone number. Brands must sign in at /seller-login.');
         }
       } else {
         if (!authEmail || !authPassword) {
@@ -171,7 +147,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -204,7 +179,6 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- UNIFIED SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -224,28 +198,7 @@ export default function Home() {
             return;
           }
 
-          const { data: brandUser } = await supabase
-            .from('brands')
-            .select('*')
-            .eq('email', authEmail)
-            .eq('password', authPassword)
-            .maybeSingle();
-
-          if (brandUser) {
-            login({
-              email: brandUser.email,
-              role: 'SELLER',
-              brandName: brandUser.brand_name,
-              firstName: brandUser.first_name,
-              lastName: brandUser.last_name,
-            });
-            setIsModalOpen(false);
-            alert(`Welcome back, ${brandUser.brand_name}!`);
-            setAuthLoading(false);
-            return;
-          }
-
-          alert('Invalid email or password. Please try again.');
+          alert('Invalid email or password. Brands must sign in at /seller-login.');
         }
       }
     } catch (err: any) {
@@ -291,7 +244,6 @@ export default function Home() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
-  // Visual Category Circles for Logged-In Buyer
   const loggedInCategories = [
     { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
     { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
@@ -302,27 +254,16 @@ export default function Home() {
 
   const isBuyerLoggedIn = user && user.role === 'BUYER';
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex justify-center items-center">
-        <p className="text-gray-400 font-medium">Loading marketplace...</p>
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-white">
       
       {/* MINIMAL HEADER */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          
-          {/* Logo */}
           <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
             OAKLAHOME
           </Link>
 
-          {/* Search bar */}
           <div className="flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -338,7 +279,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Navigation Links */}
           <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
             {user ? (
               <>
@@ -356,12 +296,10 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    {/* ================= RETAIL BUYER HEADER (FAIRE STYLE ICONS) ================= */}
                     <span className="text-xs text-gray-400 tracking-wider font-bold hover:text-gray-900 cursor-pointer transition">
                       IN-EN
                     </span>
                     
-                    {/* My Market List Link */}
                     <button 
                       onClick={() => alert("Market list features coming in a future step!")}
                       className="flex items-center space-x-1.5 text-gray-500 hover:text-gray-900 transition text-sm font-bold"
@@ -370,7 +308,6 @@ export default function Home() {
                       <span className="hidden md:inline">My Market List</span>
                     </button>
 
-                    {/* Cart Icon Link */}
                     <Link 
                       href="/cart" 
                       className="text-gray-500 hover:text-gray-900 transition flex items-center space-x-1 text-sm font-bold relative"
@@ -384,7 +321,6 @@ export default function Home() {
                       )}
                     </Link>
 
-                    {/* INTERACTIVE USER PROFILE ICON & DROPDOWN */}
                     <div className="relative">
                       <button 
                         onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -400,7 +336,6 @@ export default function Home() {
                             <p className="font-extrabold text-gray-900 text-sm mt-0.5">Hi, {user.firstName || 'kargil'}</p>
                           </div>
                           
-                          {/* Menu Options */}
                           <ul className="py-1 text-sm font-bold text-gray-600">
                             <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Orders</Link></li>
                             <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Invoices</Link></li>
@@ -417,7 +352,6 @@ export default function Home() {
                             </li>
                           </ul>
 
-                          {/* Sign out */}
                           <div className="border-t border-gray-100 mt-1 pt-1">
                             <button 
                               onClick={() => {
@@ -438,7 +372,7 @@ export default function Home() {
             ) : (
               <>
                 <Link 
-                  href="/seller/onboarding" 
+                  href="/seller-onboarding" 
                   className="hover:text-gray-900 transition"
                 >
                   Sign up to sell
@@ -463,10 +397,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= CONDITIONAL BODY LAYOUT (LOGGED OUT VS LOGGED IN BUYER) ================= */}
+      {/* CONDITIONAL BODY */}
       {!isBuyerLoggedIn ? (
         <>
-          {/* ----------------- LOGGED OUT: STANDARD HERO VIDEO ----------------- */}
           <div 
             className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
             style={{ 
@@ -500,7 +433,7 @@ export default function Home() {
                   </button>
                   <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
                     Are you a brand?{' '}
-                    <Link href="/seller/onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
+                    <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
                       Sign up to sell
                     </Link>
                   </div>
@@ -511,11 +444,8 @@ export default function Home() {
         </>
       ) : (
         <>
-          {/* ----------------- LOGGED IN BUYER HOMEPAGE (FAIRE DESIGN) ----------------- */}
           <section className="bg-white py-12 px-6 border-b border-gray-100">
             <div className="max-w-7xl mx-auto space-y-12 text-left">
-              
-              {/* "Welcome back, kargil" serif title */}
               <h1 
                 className="text-4xl font-light text-gray-950 tracking-tight"
                 style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
@@ -523,7 +453,6 @@ export default function Home() {
                 Welcome back, {user.firstName || 'kargil'}
               </h1>
 
-              {/* FAIRE STYLE CATEGORY CIRCLES */}
               <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
                 {loggedInCategories.map((cat) => (
                   <button 
@@ -539,7 +468,6 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* RECENTLY VIEWED (Horizontal list of cards) */}
               <div className="pt-6 border-t border-gray-50">
                 <h3 
                   className="text-2xl font-light text-gray-950 mb-6"
@@ -548,7 +476,6 @@ export default function Home() {
                   Recently viewed
                 </h3>
                 
-                {/* Horizontal carousel showing 3 products */}
                 {products.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {products.slice(0, 4).map((product) => (
@@ -571,13 +498,12 @@ export default function Home() {
                   <p className="text-sm text-gray-400">No recently viewed items.</p>
                 )}
               </div>
-
             </div>
           </section>
         </>
       )}
 
-      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
+      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -586,7 +512,6 @@ export default function Home() {
           Featured brands
         </h2>
 
-        {/* HORIZONTAL CAPSULES */}
         <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
           {categories.map((catName) => {
             const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
@@ -606,7 +531,6 @@ export default function Home() {
           })}
         </div>
 
-        {/* BRANDS LIST */}
         <div className="mt-12">
           {filteredBrands.length > 0 ? (
             <div className="space-y-16">
@@ -642,7 +566,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
+      {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -674,7 +598,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
+      {/* SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
@@ -715,7 +639,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
+      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -822,7 +746,7 @@ export default function Home() {
                   Sign up to buy
                 </button>
                 <Link
-                  href="/seller/onboarding"
+                  href="/seller-onboarding"
                   className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm text-center"
                 >
                   Sign up to sell
@@ -852,7 +776,7 @@ export default function Home() {
                 <ul className="space-y-3 text-sm text-gray-500 font-medium">
                   <li><Link href="/" className="hover:text-gray-900 transition">Help center</Link></li>
                   <li><Link href="/" className="hover:text-gray-900 transition">Oaklahome Markets</Link></li>
-                  <li><Link href="/seller/onboarding" className="hover:text-gray-900 transition">Sign up to sell</Link></li>
+                  <li><Link href="/seller-onboarding" className="hover:text-gray-900 transition">Sign up to sell</Link></li>
                   <li><Link href="/" className="hover:text-gray-900 transition">POS integration</Link></li>
                   <li><Link href="/" className="hover:text-gray-900 transition">How Oaklahome works</Link></li>
                   <li><Link href="/" className="hover:text-gray-900 transition">Large retailers</Link></li>
@@ -903,12 +827,11 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP AUTH MODAL (UNIFIED MOBILE-FIRST PHONE/OTP + EMAIL FALLBACK OVERLAY) */}
+      {/* POPUP AUTH MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
-            {/* Close button (X) */}
             <button 
               onClick={() => {
                 setIsModalOpen(false);
@@ -1003,7 +926,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
                           >
                             Back
                           </button>
