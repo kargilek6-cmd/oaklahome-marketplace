@@ -34,7 +34,7 @@ export default function Home() {
   const [enteredOtp, setEnteredOtp] = useState('');
 
   // Calculate the total number of items in the cart
-  const totalCartItems = cart.reduce((total, item) => total + item.quantity, 0);
+  const totalCartItems = cart.reduce((total: number, item: any) => total + item.quantity, 0);
 
   useEffect(() => {
     async function fetchMarketplaceData() {
