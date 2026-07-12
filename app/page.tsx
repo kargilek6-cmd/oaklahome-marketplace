@@ -284,7 +284,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= HERO VIDEO BANNER ================= */}
+      {/* HERO VIDEO BANNER */}
       <div 
         className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
         style={{ 
@@ -327,7 +327,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ================= NEW SECTION 1: THE "FEATURED BRANDS" SECTION (MOVED UP) ================= */}
+      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -336,7 +336,7 @@ export default function Home() {
           Featured brands
         </h2>
 
-        {/* FAIRE STYLE CATEGORY CAPSULES (HORIZONTAL SCROLLING) */}
+        {/* HORIZONTAL CAPSULES */}
         <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
           {categories.map((catName) => {
             const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
@@ -356,14 +356,13 @@ export default function Home() {
           })}
         </div>
 
-        {/* DYNAMIC BRANDS LIST (SHOWING BRAND CARDS) */}
+        {/* BRANDS LIST */}
         <div className="mt-12">
           {filteredBrands.length > 0 ? (
             <div className="space-y-16">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {filteredBrands.map((brand) => (
                   <div key={brand.id} className="group overflow-hidden">
-                    {/* Brand Card Cover Image */}
                     <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
                       <img 
                         src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600'} 
@@ -371,7 +370,6 @@ export default function Home() {
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       />
                     </Link>
-                    {/* Brand Details below the card */}
                     <div className="mt-3">
                       <Link 
                         href={`/brand/${encodeURIComponent(brand.brand_name)}`}
@@ -426,7 +424,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= NEW SECTION 3: THE PRODUCTS CATALOG GRID ================= */}
+      {/* ================= NEW SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
+      <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
+          
+          {/* Left Square Image: Minimalist journals/notebooks */}
+          <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
+            <img 
+              src="https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80" 
+              alt="Minimalist stationery and journals" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Center B2B Text Block */}
+          <div className="space-y-4 max-w-md mx-auto">
+            <h2 
+              className="text-3xl font-light text-white leading-tight"
+              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+            >
+              For any retailer, no matter what you sell.
+            </h2>
+            <p className="text-sm text-neutral-100 font-light leading-relaxed">
+              Whether you buy for a clothing boutique or a grocery shop, find all the products you need on Oaklahome.
+            </p>
+            <button
+              onClick={() => openAuthModal('signup')}
+              className="bg-white hover:bg-neutral-50 text-gray-950 font-bold px-6 py-3 rounded text-[10px] uppercase tracking-widest transition duration-150 shadow-md inline-block mt-4"
+            >
+              Sign up to buy
+            </button>
+          </div>
+
+          {/* Right Square Image: Boutique Owner / Designer shelves */}
+          <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
+            <img 
+              src="https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=600&auto=format&fit=crop&q=80" 
+              alt="Shop owner with beautifully designed shelves" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+        </div>
+      </section>
+
+      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
