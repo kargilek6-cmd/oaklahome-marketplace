@@ -36,6 +36,7 @@ function NewProductForm() {
   const [status, setStatus] = useState('published'); // default as published
   
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false); // Tracks image upload loading state
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,6 +45,40 @@ function NewProductForm() {
       setBrandName(decodeURIComponent(urlBrandName));
     }
   }, [urlBrandName]);
+
+  // ASYNC IMAGE UPLOADER HANDLER (Uploads to Supabase Storage & gets Public URL)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Create a unique, clean filename to avoid overwrite conflicts
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Organize files inside folders named after each brand
+      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+
+      // Upload file to the 'product-images' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Retrieve the public URL for the newly uploaded file
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setImageUrl(data.publicUrl);
+    } catch (err: any) {
+      console.error('Image upload failed:', err);
+      alert('Failed to upload image: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +120,7 @@ function NewProductForm() {
   const categories = [
     'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
     'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
-    'Pets', 'Jewelry', 'CBD/THC', 'Something else'
+    'Pets', 'Jewelry', 'Something else'
   ];
 
   if (!mounted) {
@@ -116,7 +151,7 @@ function NewProductForm() {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || uploading}
               className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-5 py-2.5 rounded text-sm transition disabled:bg-gray-200 shadow"
             >
               {loading ? 'Saving...' : 'Save & publish'}
@@ -188,39 +223,57 @@ function NewProductForm() {
             </div>
           </section>
 
-          {/* ================= SECTION 2: IMAGES & VIDEOS ================= */}
+          {/* ================= SECTION 2: IMAGES & VIDEOS (WITH FUNCTIONAL UPLOAD) ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Images & videos</h2>
             <div className="space-y-5 mt-6">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product images*</h3>
               <p className="text-xs text-gray-400">Add high-quality images. The first image will be your main product listing photo.</p>
 
-              {/* 8-SQUARE FAIRE PHOTO GRID PLACEHOLDER */}
+              {/* 8-SQUARE FAIRE PHOTO GRID WITH CHOOSE FILE + PREVIEW */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 
-                {/* 1st Square: ACTIVE LINK INPUT BOX */}
-                <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 min-h-[10rem]">
-                  {imageUrl ? (
+                {/* 1st Square: ACTIVE FILE UPLOADER & PREVIEW */}
+                <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 min-h-[12rem] relative transition duration-150">
+                  {uploading ? (
+                    <div className="text-center space-y-2">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider animate-pulse">Uploading...</p>
+                    </div>
+                  ) : imageUrl ? (
                     <div className="w-full h-full relative group">
-                      <img src={imageUrl} alt="" className="w-full h-full object-cover rounded-lg" />
+                      <img src={imageUrl} alt="Uploaded product" className="w-full h-full object-cover rounded-lg" />
                       <button 
                         type="button" 
                         onClick={() => setImageUrl('')}
-                        className="absolute inset-0 bg-black/50 text-white font-bold text-xs flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition"
+                        className="absolute inset-0 bg-black/50 text-white font-bold text-xs flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition duration-150"
                       >
-                        Remove
+                        Remove Photo
                       </button>
                     </div>
                   ) : (
-                    <div className="w-full space-y-2">
-                      <span className="text-2xl">📸</span>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Paste Image Link</p>
+                    <div className="w-full space-y-3">
+                      <span className="text-2xl">📤</span>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Upload from Desktop</p>
+                      
+                      {/* INVISBLE FILE INPUT OVERLAID BY A STYLISH BUTTON */}
+                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[9px] px-3 py-2 rounded-lg cursor-pointer uppercase tracking-widest transition duration-150">
+                        Choose File
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {/* OTHER STANDARD OPTION: PASTE URL LINK */}
+                      <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest my-1">— OR —</p>
                       <input
                         type="url"
-                        placeholder="https://unsplash..."
+                        placeholder="Paste Image URL link"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        className="w-full border border-gray-200 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-gray-400 bg-white"
+                        className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:border-gray-400 bg-white"
                       />
                     </div>
                   )}
@@ -228,9 +281,9 @@ function NewProductForm() {
 
                 {/* Remaining 7 empty squares exactly like Faire */}
                 {[...Array(7)].map((_, i) => (
-                  <div key={i} className="border border-dashed border-gray-100 rounded-xl flex flex-col justify-center items-center text-center bg-gray-50/10 min-h-[10rem]">
-                    <span className="text-xl text-gray-300">📤</span>
-                    <p className="text-[10px] text-gray-300 font-bold mt-1 uppercase tracking-wider">Upload image</p>
+                  <div key={i} className="border border-dashed border-gray-100 rounded-xl flex flex-col justify-center items-center text-center bg-gray-50/10 min-h-[12rem]">
+                    <span className="text-xl text-gray-300/60">📤</span>
+                    <p className="text-[10px] text-gray-300/80 font-bold mt-1 uppercase tracking-wider">Upload image</p>
                   </div>
                 ))}
 
@@ -295,7 +348,7 @@ function NewProductForm() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               className="bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save & publish'}
