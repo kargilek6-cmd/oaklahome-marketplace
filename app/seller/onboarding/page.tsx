@@ -82,7 +82,7 @@ export default function OnboardingPage() {
   const categories = [
     'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
     'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
-    'Pets', 'Jewelry', 'CBD/THC', 'Something else'
+    'Pets', 'Jewelry', 'Something else'
   ];
 
   // If the page hasn't finished loading in the browser, show a simple loading screen
@@ -115,7 +115,7 @@ export default function OnboardingPage() {
 
       <div className="max-w-7xl mx-auto py-12 px-6 flex justify-center">
 
-        {/* ================= STEP 1: SIGN UP ================= */}
+        {/* ================= STEP 1: SIGN UP (WITH INTEGRATED SELLER SIGN IN LINK) ================= */}
         {step === 1 && (
           <div className="max-w-md w-full text-center">
             <h1 className="text-3xl font-serif font-semibold text-gray-950 tracking-tight leading-tight">
@@ -193,6 +193,16 @@ export default function OnboardingPage() {
                 Next
               </button>
             </form>
+
+            {/* INTEGRATED BRAND PORTAL SIGN IN LINK */}
+            <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
+              <p>
+                Already have a brand?{' '}
+                <Link href="/seller/login" className="text-blue-600 hover:underline">
+                  Sign in to your seller portal
+                </Link>
+              </p>
+            </div>
           </div>
         )}
 
