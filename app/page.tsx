@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
-import { useAuth } from './context/AuthContext'; 
+import { useAuth } from './context/AuthContext'; // Import our auth hook
 import Link from 'next/link';
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
   const [brands, setBrands] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all'); 
+  const [selectedCategory, setSelectedCategory] = useState('all'); // Track active category filter
   
   const { cart, addToCart } = useCart();
   const { user, login, logout } = useAuth();
@@ -39,12 +39,14 @@ export default function Home() {
   useEffect(() => {
     async function fetchMarketplaceData() {
       try {
+        // 1. Fetch products from Supabase
         const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
         if (prodError) throw prodError;
         setProducts(prodData || []);
 
+        // 2. Fetch onboarded brands from Supabase
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*');
@@ -60,6 +62,7 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
+  // Handle OTP Sending
   const handleSendOtp = () => {
     if (!authPhone || authPhone.length < 10) {
       alert('Please enter a valid 10-digit mobile number.');
@@ -72,6 +75,7 @@ export default function Home() {
     setAuthLoading(false);
   };
 
+  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -85,6 +89,7 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -118,6 +123,7 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
+          // ------- BUYER-ONLY SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -147,6 +153,7 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -179,6 +186,7 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
+          // ------- BUYER-ONLY SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -244,6 +252,7 @@ export default function Home() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
+  // Visual Category Circles for Logged-In Buyer
   const loggedInCategories = [
     { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
     { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
@@ -257,14 +266,87 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* MINIMAL HEADER */}
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
-            OAKLAHOME
-          </Link>
+      {/* ================= OPTIMIZED RESPONSIVE HEADER ================= */}
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-3 md:py-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
+          
+          {/* Top Row on Mobile: Logo (Left) and Mobile Icons (Right) */}
+          <div className="flex items-center justify-between w-full md:w-auto">
+            {/* Logo */}
+            <Link href="/" className="font-serif text-base md:text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
+              OAKLAHOME
+            </Link>
 
-          <div className="flex-grow max-w-xl mx-8 relative">
+            {/* Mobile-Only Icons Panel */}
+            <div className="flex md:hidden items-center space-x-3.5">
+              {user ? (
+                <>
+                  {user.role === 'SELLER' ? (
+                    <Link 
+                      href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
+                      className="bg-gray-950 text-white font-bold text-[10px] px-2.5 py-1.5 rounded shadow uppercase tracking-wider"
+                    >
+                      Portal 📦
+                    </Link>
+                  ) : (
+                    <>
+                      {/* Mobile Profile Dropdown */}
+                      <div className="relative">
+                        <button 
+                          onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                          className="w-7 h-7 rounded-full bg-gray-900 text-white font-bold text-xs flex items-center justify-center uppercase"
+                        >
+                          {user.firstName ? user.firstName[0] : 'K'}
+                        </button>
+                        {isUserDropdownOpen && (
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left">
+                            <ul className="text-xs font-bold text-gray-600">
+                              <li><Link href="/" className="block px-4 py-2 hover:bg-gray-50">Orders</Link></li>
+                              <li><Link href="/" className="block px-4 py-2 hover:bg-gray-50">Invoices</Link></li>
+                              <li>
+                                <button 
+                                  onClick={() => {
+                                    logout();
+                                    setIsUserDropdownOpen(false);
+                                  }} 
+                                  className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 font-bold"
+                                >
+                                  Sign out
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <button 
+                  onClick={() => openAuthModal('signin')}
+                  className="text-xs font-bold text-gray-700 hover:text-gray-900 transition"
+                >
+                  Sign In
+                </button>
+              )}
+
+              {/* Floating Mobile Cart */}
+              {totalCartItems > 0 && (
+                <Link 
+                  href="/cart" 
+                  className="bg-blue-50 text-blue-700 p-2 rounded-xl flex items-center space-x-1"
+                >
+                  <span>🛒</span>
+                  <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[9px] font-black">
+                    {totalCartItems}
+                  </span>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Search bar (Full-width on mobile, centered on desktop) */}
+          <div className="w-full md:flex-grow md:max-w-xl md:mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -279,7 +361,8 @@ export default function Home() {
             />
           </div>
 
-          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
+          {/* Desktop Menu (Hidden on mobile) */}
+          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700">
             {user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -296,76 +379,15 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    <span className="text-xs text-gray-400 tracking-wider font-bold hover:text-gray-900 cursor-pointer transition">
-                      IN-EN
+                    <span className="text-gray-400 font-medium">
+                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
                     </span>
-                    
                     <button 
-                      onClick={() => alert("Market list features coming in a future step!")}
-                      className="flex items-center space-x-1.5 text-gray-500 hover:text-gray-900 transition text-sm font-bold"
+                      onClick={logout}
+                      className="text-red-500 hover:text-red-700 hover:underline transition"
                     >
-                      <span>⭐️</span>
-                      <span className="hidden md:inline">My Market List</span>
+                      Sign out
                     </button>
-
-                    <Link 
-                      href="/cart" 
-                      className="text-gray-500 hover:text-gray-900 transition flex items-center space-x-1 text-sm font-bold relative"
-                    >
-                      <span>🛒</span>
-                      <span className="hidden md:inline">Cart</span>
-                      {totalCartItems > 0 && (
-                        <span className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black">
-                          {totalCartItems}
-                        </span>
-                      )}
-                    </Link>
-
-                    <div className="relative">
-                      <button 
-                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                        className="w-8 h-8 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs flex items-center justify-center cursor-pointer transition uppercase"
-                      >
-                        {user.firstName ? user.firstName[0] : 'K'}
-                      </button>
-
-                      {isUserDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left animate-in fade-in slide-in-from-top-3 duration-150">
-                          <div className="px-4 py-2.5 border-b border-gray-100">
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</p>
-                            <p className="font-extrabold text-gray-900 text-sm mt-0.5">Hi, {user.firstName || 'kargil'}</p>
-                          </div>
-                          
-                          <ul className="py-1 text-sm font-bold text-gray-600">
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Orders</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Invoices</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Settings</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Reviews</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Help Center</Link></li>
-                            <li>
-                              <button 
-                                onClick={() => alert("Referrals coming in a future step!")}
-                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition font-bold"
-                              >
-                                Refer brands to Oaklahome
-                              </button>
-                            </li>
-                          </ul>
-
-                          <div className="border-t border-gray-100 mt-1 pt-1">
-                            <button 
-                              onClick={() => {
-                                logout();
-                                setIsUserDropdownOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 font-bold transition"
-                            >
-                              Sign out
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </>
                 )}
               </>
@@ -392,6 +414,18 @@ export default function Home() {
                   Sign up to buy
                 </button>
               </>
+            )}
+
+            {totalCartItems > 0 && (
+              <Link 
+                href="/cart" 
+                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
+              >
+                <span>🛒 Cart</span>
+                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
+                  {totalCartItems}
+                </span>
+              </Link>
             )}
           </div>
         </div>
@@ -512,6 +546,7 @@ export default function Home() {
           Featured brands
         </h2>
 
+        {/* HORIZONTAL CAPSULES */}
         <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
           {categories.map((catName) => {
             const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
@@ -531,6 +566,7 @@ export default function Home() {
           })}
         </div>
 
+        {/* BRANDS LIST */}
         <div className="mt-12">
           {filteredBrands.length > 0 ? (
             <div className="space-y-16">
@@ -832,6 +868,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
+            {/* Close button (X) */}
             <button 
               onClick={() => {
                 setIsModalOpen(false);
@@ -926,7 +963,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
                           >
                             Back
                           </button>
