@@ -424,15 +424,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= NEW SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
+      {/* ================= NEW SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER (UPDATED WITH HOME DECOR PHOTOS!) ================= */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
-          {/* Left Square Image: Minimalist journals/notebooks */}
+          {/* Left Square Image: Cozy minimalist home-decor shelves with pottery and books */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
-              src="https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80" 
-              alt="Minimalist stationery and journals" 
+              src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80" 
+              alt="Cozy minimalist home-decor shelves with pottery and books" 
               className="w-full h-full object-cover"
             />
           </div>
@@ -456,11 +456,11 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Right Square Image: Boutique Owner / Designer shelves */}
+          {/* Right Square Image: Warm oak wooden designer armchair */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
-              src="https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=600&auto=format&fit=crop&q=80" 
-              alt="Shop owner with beautifully designed shelves" 
+              src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&auto=format&fit=crop&q=80" 
+              alt="Warm oak wooden designer armchair" 
               className="w-full h-full object-cover"
             />
           </div>
