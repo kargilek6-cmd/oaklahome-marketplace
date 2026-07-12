@@ -19,10 +19,17 @@ export default function Home() {
   // AUTH MODAL STATES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'signin' | 'signup'>('signin');
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // 'phone' is primary, 'email' is alternate
+  
   const [authEmail, setAuthEmail] = useState('');
   const [authPhone, setAuthPhone] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // OTP MOCK STATES
+  const [otpSent, setOtpSent] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
 
   // Calculate the total number of items in the cart
   const totalCartItems = cart.reduce((total, item) => total + item.quantity, 0);
@@ -53,92 +60,197 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
+  // Handle OTP Sending
+  const handleSendOtp = () => {
+    if (!authPhone || authPhone.length < 10) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    setAuthLoading(true);
+
+    // Generate a random 6-digit OTP
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(code);
+    setOtpSent(true);
+    setAuthLoading(false);
+  };
+
   // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
 
-    if (!authEmail || !authPassword || (modalType === 'signup' && !authPhone)) {
-      alert('Please fill out all required fields.');
-      setAuthLoading(false);
-      return;
-    }
-
     try {
-      if (modalType === 'signup') {
-        // ================= BUYER SIGN UP =================
-        const { data: existingBuyer } = await supabase
-          .from('buyers')
-          .select('*')
-          .eq('email', authEmail)
-          .maybeSingle();
-
-        if (existingBuyer) {
-          alert('An account with this email already exists. Please sign in.');
-          setModalType('signin');
+      if (authMethod === 'phone') {
+        // ================= OTP VERIFICATION FLOW =================
+        if (enteredOtp !== generatedOtp) {
+          alert('Invalid OTP. Please enter the correct code.');
           setAuthLoading(false);
           return;
         }
 
-        const { error: signUpError } = await supabase.from('buyers').insert([
-          {
-            email: authEmail,
-            phone: authPhone,
-            password: authPassword,
-          },
-        ]);
+        if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via PHONE -------
+          // Check if phone already exists
+          const { data: existingBuyer } = await supabase
+            .from('buyers')
+            .select('*')
+            .eq('phone', authPhone)
+            .maybeSingle();
 
-        if (signUpError) throw signUpError;
+          if (existingBuyer) {
+            alert('An account with this mobile number already exists. Please sign in.');
+            setModalType('signin');
+            setAuthLoading(false);
+            return;
+          }
 
-        login({
-          email: authEmail,
-          role: 'BUYER',
-        });
+          // Save new buyer to "buyers" table (email defaults to phone representation)
+          const { error: signUpError } = await supabase.from('buyers').insert([
+            {
+              email: `user_${authPhone}@oaklahome.com`, // fallback email
+              phone: authPhone,
+              password: 'phone_otp_user', // placeholder password
+            },
+          ]);
 
-        alert('Account created successfully! Welcome to Oaklahome.');
-        setIsModalOpen(false);
-      } else {
-        // ================= UNIFIED SIGN IN =================
-        const { data: buyerUser } = await supabase
-          .from('buyers')
-          .select('*')
-          .eq('email', authEmail)
-          .eq('password', authPassword)
-          .maybeSingle();
+          if (signUpError) throw signUpError;
 
-        if (buyerUser) {
           login({
-            email: buyerUser.email,
+            email: `${authPhone}@mobile`,
+            phone: authPhone,
             role: 'BUYER',
           });
+
+          alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
-          alert('Logged in as Retailer!');
+        } else {
+          // ------- UNIFIED SIGN IN via PHONE -------
+          // 1. Check if they are a Buyer
+          const { data: buyerUser } = await supabase
+            .from('buyers')
+            .select('*')
+            .eq('phone', authPhone)
+            .maybeSingle();
+
+          if (buyerUser) {
+            login({
+              email: buyerUser.email,
+              phone: buyerUser.phone,
+              role: 'BUYER',
+            });
+            setIsModalOpen(false);
+            alert('Logged in as Retailer!');
+            setAuthLoading(false);
+            return;
+          }
+
+          // 2. Check if they are a Seller
+          const { data: brandUser } = await supabase
+            .from('brands')
+            .select('*')
+            .eq('phone', authPhone)
+            .maybeSingle();
+
+          if (brandUser) {
+            login({
+              email: brandUser.email,
+              role: 'SELLER',
+              brandName: brandUser.brand_name,
+              firstName: brandUser.first_name,
+              lastName: brandUser.last_name,
+            });
+            setIsModalOpen(false);
+            alert(`Welcome back, ${brandUser.brand_name}!`);
+            setAuthLoading(false);
+            return;
+          }
+
+          alert('No registered account found with this phone number. Please sign up first.');
+        }
+      } else {
+        // ================= EMAIL & PASSWORD FLOW (ALTERNATE) =================
+        if (!authEmail || !authPassword) {
+          alert('Please fill out all required fields.');
           setAuthLoading(false);
           return;
         }
 
-        const { data: brandUser } = await supabase
-          .from('brands')
-          .select('*')
-          .eq('email', authEmail)
-          .eq('password', authPassword)
-          .maybeSingle();
+        if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via EMAIL -------
+          const { data: existingBuyer } = await supabase
+            .from('buyers')
+            .select('*')
+            .eq('email', authEmail)
+            .maybeSingle();
 
-        if (brandUser) {
+          if (existingBuyer) {
+            alert('An account with this email already exists. Please sign in.');
+            setModalType('signin');
+            setAuthLoading(false);
+            return;
+          }
+
+          const { error: signUpError } = await supabase.from('buyers').insert([
+            {
+              email: authEmail,
+              phone: '',
+              password: authPassword,
+            },
+          ]);
+
+          if (signUpError) throw signUpError;
+
           login({
-            email: brandUser.email,
-            role: 'SELLER',
-            brandName: brandUser.brand_name,
-            firstName: brandUser.first_name,
-            lastName: brandUser.last_name,
+            email: authEmail,
+            role: 'BUYER',
           });
-          setIsModalOpen(false);
-          alert(`Welcome back, ${brandUser.brand_name}!`);
-          setAuthLoading(false);
-          return;
-        }
 
-        alert('Invalid email or password. Please try again.');
+          alert('Account created successfully! Welcome to Oaklahome.');
+          setIsModalOpen(false);
+        } else {
+          // ------- UNIFIED SIGN IN via EMAIL -------
+          const { data: buyerUser } = await supabase
+            .from('buyers')
+            .select('*')
+            .eq('email', authEmail)
+            .eq('password', authPassword)
+            .maybeSingle();
+
+          if (buyerUser) {
+            login({
+              email: buyerUser.email,
+              role: 'BUYER',
+            });
+            setIsModalOpen(false);
+            alert('Logged in as Retailer!');
+            setAuthLoading(false);
+            return;
+          }
+
+          const { data: brandUser } = await supabase
+            .from('brands')
+            .select('*')
+            .eq('email', authEmail)
+            .eq('password', authPassword)
+            .maybeSingle();
+
+          if (brandUser) {
+            login({
+              email: brandUser.email,
+              role: 'SELLER',
+              brandName: brandUser.brand_name,
+              firstName: brandUser.first_name,
+              lastName: brandUser.last_name,
+            });
+            setIsModalOpen(false);
+            alert(`Welcome back, ${brandUser.brand_name}!`);
+            setAuthLoading(false);
+            return;
+          }
+
+          alert('Invalid email or password. Please try again.');
+        }
       }
     } catch (err: any) {
       console.error('Authentication failed:', err);
@@ -148,15 +260,24 @@ export default function Home() {
       setAuthEmail('');
       setAuthPhone('');
       setAuthPassword('');
+      setEnteredOtp('');
+      setOtpSent(false);
     }
   };
 
+  // Open modal helper
   const openAuthModal = (type: 'signin' | 'signup') => {
     setModalType(type);
+    setAuthMethod('phone'); // reset to primary phone method on open
+    setOtpSent(false);
+    setAuthPhone('');
+    setAuthEmail('');
+    setAuthPassword('');
+    setEnteredOtp('');
     setIsModalOpen(true);
   };
 
-  // Filter brands by the active category capsule
+  // Filter brands by active category capsule
   const filteredBrands = brands.filter((brand) => {
     const brandCategory = brand.category || 'Home decor';
     return selectedCategory === 'all' || brandCategory.toLowerCase() === selectedCategory.toLowerCase();
@@ -231,8 +352,9 @@ export default function Home() {
                   </>
                 ) : (
                   <>
+                    {/* Logged in as a Retail Buyer */}
                     <span className="text-gray-400 font-medium">
-                      Retailer: <strong className="text-gray-950">{user.email.split('@')[0]}</strong>
+                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
                     </span>
                     <button 
                       onClick={logout}
@@ -245,6 +367,7 @@ export default function Home() {
               </>
             ) : (
               <>
+                {/* Logged out: Show standard minimal Faire header buttons */}
                 <Link 
                   href="/seller/onboarding" 
                   className="hover:text-gray-900 transition"
@@ -327,7 +450,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
+      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -336,7 +459,6 @@ export default function Home() {
           Featured brands
         </h2>
 
-        {/* HORIZONTAL CAPSULES */}
         <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
           {categories.map((catName) => {
             const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
@@ -356,7 +478,6 @@ export default function Home() {
           })}
         </div>
 
-        {/* BRANDS LIST */}
         <div className="mt-12">
           {filteredBrands.length > 0 ? (
             <div className="space-y-16">
@@ -392,7 +513,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
+      {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -424,11 +545,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
+      {/* SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
-          {/* Left Square Image */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
               src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80" 
@@ -437,7 +557,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Center B2B Text Block */}
           <div className="space-y-4 max-w-md mx-auto">
             <h2 
               className="text-3xl font-light text-white leading-tight"
@@ -456,7 +575,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Right Square Image */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
               src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&auto=format&fit=crop&q=80" 
@@ -468,7 +586,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
+      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -556,13 +674,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= NEW SECTION 5: PIXEL-PERFECT FAIRE-STYLE FOOTER ================= */}
+      {/* SECTION 5: FOOTER */}
       <footer className="bg-white border-t border-gray-100 py-16 px-6 mt-16">
         <div className="max-w-7xl mx-auto">
-          {/* Main Footer Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 items-start">
-            
-            {/* Column 1: Wide About & Sign Up Links (Spans 2 columns on medium screens) */}
             <div className="md:col-span-2 space-y-6">
               <h3 
                 className="text-3xl font-light text-gray-900 leading-tight max-w-md"
@@ -586,7 +701,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Column 2: Company Navigation Links */}
             <div className="space-y-4">
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 Company
@@ -601,7 +715,6 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Column 3: Explore Navigation Links & Social Icons on Right */}
             <div className="space-y-6 flex flex-col justify-between h-full">
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -618,21 +731,17 @@ export default function Home() {
                 </ul>
               </div>
 
-              {/* Minimal SVG Social Icons Group (Instagram, Facebook, X) */}
               <div className="flex items-center space-x-6 pt-6 border-t border-gray-50 md:border-none">
-                {/* Instagram */}
                 <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 1.9.24 2.502.542a4.413 4.413 0 011.583 1.503c.3.6.49 1.363.542 2.502.044.925.054 1.28.054 3.71s-.01 2.784-.054 3.71c-.052 1.139-.24 1.9-.542 2.502a4.413 4.413 0 01-1.503 1.583c-.6.3-1.363.49-2.502.542-.925.044-1.28.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-1.9-.24-2.502-.542a4.413 4.413 0 01-1.583-1.503c-.3-.6-.49-1.363-.542-2.502C2.01 14.821 2 14.466 2 12s.01-2.784.054-3.71c.052-1.139.24-1.9.542-2.502a4.413 4.413 0 011.503-1.583c.6-.3 1.363-.49 2.502-.542.925-.044 1.28-.054 3.71-.054zM12 6.865a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 1.802a3.333 3.333 0 110 6.666 3.333 3.333 0 010-6.666zm5.338-3.205a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" clipRule="evenodd" />
                   </svg>
                 </Link>
-                {/* Facebook */}
                 <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
                   </svg>
                 </Link>
-                {/* X / Twitter */}
                 <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -640,10 +749,8 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-
           </div>
 
-          {/* Copyright & Disclaimer Bottom Bar */}
           <div className="border-t border-gray-100 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
             <div>
               <span>©2026 Oaklahome Wholesale, Inc.</span>
@@ -660,7 +767,6 @@ export default function Home() {
               <span className="mx-2">•</span>
               <Link href="/" className="hover:text-gray-600 transition">Sitemap</Link>
             </div>
-            {/* Indian Rupee Capped Promo Offer */}
             <p className="font-medium text-gray-500 tracking-wide">
               *Sign up to get 50% off your order, up to ₹10,000.
             </p>
@@ -668,13 +774,18 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* POPUP AUTH MODAL */}
+      {/* POPUP AUTH MODAL (UNIFIED MOBILE-FIRST PHONE/OTP + EMAIL FALLBACK OVERLAY) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
+            {/* Close button (X) */}
             <button 
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setOtpSent(false);
+                setEnteredOtp('');
+              }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2"
             >
               ✕
@@ -684,68 +795,171 @@ export default function Home() {
               <span className="font-serif text-sm tracking-[0.25em] font-black text-gray-400 block mb-6">
                 OAKLAHOME
               </span>
-              <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-6">
+              <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-4">
                 {modalType === 'signin' ? 'Sign in to Oaklahome' : 'Sign up to buy wholesale'}
               </h2>
 
-              <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email address *</label>
-                  <input
-                    type="email"
-                    placeholder="e.g., storeowner@example.com"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                    required
-                  />
+              {/* METHOD TABS (PHONE VS EMAIL) - Shown only before OTP is sent */}
+              {!otpSent && (
+                <div className="flex border-b border-gray-100 mb-6 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('phone')}
+                    className={`flex-1 pb-3 text-center border-b-2 transition ${
+                      authMethod === 'phone' ? 'border-gray-950 text-gray-950' : 'border-transparent hover:text-gray-600'
+                    }`}
+                  >
+                    📱 Mobile OTP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('email')}
+                    className={`flex-1 pb-3 text-center border-b-2 transition ${
+                      authMethod === 'email' ? 'border-gray-950 text-gray-950' : 'border-transparent hover:text-gray-600'
+                    }`}
+                  >
+                    ✉️ Email & Pass
+                  </button>
                 </div>
+              )}
 
-                {modalType === 'signup' && (
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number *</label>
-                    <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
-                      <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
-                      <input
-                        type="tel"
-                        placeholder="98765 43210"
-                        value={authPhone}
-                        onChange={(e) => setAuthPhone(e.target.value)}
-                        className="w-full px-4 py-3 text-sm text-gray-900 focus:outline-none bg-transparent"
-                        required={modalType === 'signup'}
-                      />
-                    </div>
-                  </div>
+              {/* MOCK OTP GREEN SUCCESS BOX */}
+              {otpSent && authMethod === 'phone' && (
+                <div className="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 mb-6 text-sm font-semibold text-left animate-in fade-in duration-200">
+                  <p>✨ Demo OTP sent successfully!</p>
+                  <p className="text-xs text-green-600 font-normal mt-1">
+                    Use verification code: <strong className="font-bold text-green-800 text-sm">{generatedOtp}</strong>
+                  </p>
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
+                
+                {/* ----------------- METHOD 1: MOBILE PHONE + OTP ----------------- */}
+                {authMethod === 'phone' && (
+                  <>
+                    {!otpSent ? (
+                      /* Phase 1: Enter Phone Number */
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mobile Phone Number *</label>
+                        <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden focus-within:ring-1 focus-within:ring-gray-400">
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
+                          <input
+                            type="tel"
+                            placeholder="Enter 10-digit mobile number"
+                            value={authPhone}
+                            onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            className="w-full px-4 py-3 text-sm text-gray-900 focus:outline-none bg-transparent"
+                            required
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={authLoading}
+                          className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow mt-5"
+                        >
+                          {authLoading ? 'Sending...' : 'Send OTP'}
+                        </button>
+                      </div>
+                    ) : (
+                      /* Phase 2: Enter & Verify 6-digit OTP */
+                      <div className="space-y-4 animate-in slide-in-from-bottom-3 duration-200">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter 6-Digit OTP *</label>
+                          <input
+                            type="text"
+                            placeholder="Enter the code sent to your phone"
+                            value={enteredOtp}
+                            onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 tracking-[0.25em] text-center font-bold text-lg"
+                            required
+                          />
+                        </div>
+                        <div className="flex space-x-3">
+                          <button
+                            type="button"
+                            onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={authLoading}
+                            className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                          >
+                            {authLoading ? 'Verifying...' : 'Verify & Sign In'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Password *</label>
-                  <input
-                    type="password"
-                    placeholder="Enter password"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                    required
-                  />
-                </div>
+                {/* ----------------- METHOD 2: EMAIL & PASSWORD (ALTERNATE) ----------------- */}
+                {authMethod === 'email' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email address *</label>
+                      <input
+                        type="email"
+                        placeholder="e.g., storeowner@example.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                        required
+                      />
+                    </div>
 
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
-                >
-                  {authLoading ? 'Processing...' : 'Next'}
-                </button>
+                    {modalType === 'signup' && (
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number (Optional)</label>
+                        <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
+                          <input
+                            type="tel"
+                            placeholder="98765 43210"
+                            value={authPhone}
+                            onChange={(e) => setAuthPhone(e.target.value)}
+                            className="w-full px-4 py-3 text-sm text-gray-900 focus:outline-none bg-transparent"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Password *</label>
+                      <input
+                        type="password"
+                        placeholder="Enter password"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                    >
+                      {authLoading ? 'Processing...' : 'Next'}
+                    </button>
+                  </>
+                )}
+
               </form>
 
+              {/* Toggle links at the bottom */}
               <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                 {modalType === 'signin' ? (
                   <p>
                     New to Oaklahome?{' '}
                     <button 
                       onClick={() => setModalType('signup')}
-                      className="text-blue-600 hover:underline"
+                      className="text-blue-600 hover:underline cursor-pointer"
                     >
                       Sign up to buy
                     </button>
@@ -755,7 +969,7 @@ export default function Home() {
                     Already have an account?{' '}
                     <button 
                       onClick={() => setModalType('signin')}
-                      className="text-blue-600 hover:underline"
+                      className="text-blue-600 hover:underline cursor-pointer"
                     >
                       Sign in
                     </button>
