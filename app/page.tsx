@@ -424,11 +424,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= NEW SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER (UPDATED WITH HOME DECOR PHOTOS!) ================= */}
+      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
-          {/* Left Square Image: Cozy minimalist home-decor shelves with pottery and books */}
+          {/* Left Square Image */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
               src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80" 
@@ -456,7 +456,7 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Right Square Image: Warm oak wooden designer armchair */}
+          {/* Right Square Image */}
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
             <img 
               src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=600&auto=format&fit=crop&q=80" 
@@ -555,6 +555,118 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* ================= NEW SECTION 5: PIXEL-PERFECT FAIRE-STYLE FOOTER ================= */}
+      <footer className="bg-white border-t border-gray-100 py-16 px-6 mt-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Main Footer Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 items-start">
+            
+            {/* Column 1: Wide About & Sign Up Links (Spans 2 columns on medium screens) */}
+            <div className="md:col-span-2 space-y-6">
+              <h3 
+                className="text-3xl font-light text-gray-900 leading-tight max-w-md"
+                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+              >
+                The best selection of brands for your store, all in one place
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => openAuthModal('signup')}
+                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm"
+                >
+                  Sign up to buy
+                </button>
+                <Link
+                  href="/seller/onboarding"
+                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm text-center"
+                >
+                  Sign up to sell
+                </Link>
+              </div>
+            </div>
+
+            {/* Column 2: Company Navigation Links */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Company
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-500 font-medium">
+                <li><Link href="/" className="hover:text-gray-900 transition">About us</Link></li>
+                <li><Link href="/" className="hover:text-gray-900 transition">Newsroom</Link></li>
+                <li><Link href="/" className="hover:text-gray-900 transition">Careers</Link></li>
+                <li><Link href="/" className="hover:text-gray-900 transition">Affiliates</Link></li>
+                <li><Link href="/" className="hover:text-gray-900 transition">Blog</Link></li>
+                <li><Link href="/" className="hover:text-gray-900 transition">Hub</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3: Explore Navigation Links & Social Icons on Right */}
+            <div className="space-y-6 flex flex-col justify-between h-full">
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Explore
+                </h4>
+                <ul className="space-y-3 text-sm text-gray-500 font-medium">
+                  <li><Link href="/" className="hover:text-gray-900 transition">Help center</Link></li>
+                  <li><Link href="/" className="hover:text-gray-900 transition">Oaklahome Markets</Link></li>
+                  <li><Link href="/seller/onboarding" className="hover:text-gray-900 transition">Sign up to sell</Link></li>
+                  <li><Link href="/" className="hover:text-gray-900 transition">POS integration</Link></li>
+                  <li><Link href="/" className="hover:text-gray-900 transition">How Oaklahome works</Link></li>
+                  <li><Link href="/" className="hover:text-gray-900 transition">Large retailers</Link></li>
+                  <li><Link href="/" className="hover:text-gray-900 transition">Refer a brand</Link></li>
+                </ul>
+              </div>
+
+              {/* Minimal SVG Social Icons Group (Instagram, Facebook, X) */}
+              <div className="flex items-center space-x-6 pt-6 border-t border-gray-50 md:border-none">
+                {/* Instagram */}
+                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 1.9.24 2.502.542a4.413 4.413 0 011.583 1.503c.3.6.49 1.363.542 2.502.044.925.054 1.28.054 3.71s-.01 2.784-.054 3.71c-.052 1.139-.24 1.9-.542 2.502a4.413 4.413 0 01-1.503 1.583c-.6.3-1.363.49-2.502.542-.925.044-1.28.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-1.9-.24-2.502-.542a4.413 4.413 0 01-1.583-1.503c-.3-.6-.49-1.363-.542-2.502C2.01 14.821 2 14.466 2 12s.01-2.784.054-3.71c.052-1.139.24-1.9.542-2.502a4.413 4.413 0 011.503-1.583c.6-.3 1.363-.49 2.502-.542.925-.044 1.28-.054 3.71-.054zM12 6.865a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 1.802a3.333 3.333 0 110 6.666 3.333 3.333 0 010-6.666zm5.338-3.205a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+                {/* Facebook */}
+                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+                {/* X / Twitter */}
+                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Copyright & Disclaimer Bottom Bar */}
+          <div className="border-t border-gray-100 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
+            <div>
+              <span>©2026 Oaklahome Wholesale, Inc.</span>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">Terms of Service</Link>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">Privacy Policy</Link>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">Cookie Policy</Link>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">IP Policy</Link>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">Accessibility Policy</Link>
+              <span className="mx-2">•</span>
+              <Link href="/" className="hover:text-gray-600 transition">Sitemap</Link>
+            </div>
+            {/* Indian Rupee Capped Promo Offer */}
+            <p className="font-medium text-gray-500 tracking-wide">
+              *Sign up to get 50% off your order, up to ₹10,000.
+            </p>
+          </div>
+        </div>
+      </footer>
 
       {/* POPUP AUTH MODAL */}
       {isModalOpen && (
