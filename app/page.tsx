@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
-import { useAuth } from './context/AuthContext'; // Import our auth hook
+import { useAuth } from './context/AuthContext'; 
 import Link from 'next/link';
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
   const [brands, setBrands] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all'); // Track active category filter
+  const [selectedCategory, setSelectedCategory] = useState('all'); 
   
   const { cart, addToCart } = useCart();
   const { user, login, logout } = useAuth();
@@ -25,8 +25,10 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // USER DROPDOWN STATE
+  // USER DROPDOWN & MOBILE SIDEBAR STATES
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Controls the 3-lines sidebar
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // Toggles mobile search input
 
   // OTP MOCK STATES
   const [otpSent, setOtpSent] = useState(false);
@@ -39,14 +41,12 @@ export default function Home() {
   useEffect(() => {
     async function fetchMarketplaceData() {
       try {
-        // 1. Fetch products from Supabase
         const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
         if (prodError) throw prodError;
         setProducts(prodData || []);
 
-        // 2. Fetch onboarded brands from Supabase
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*');
@@ -62,7 +62,6 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
-  // Handle OTP Sending
   const handleSendOtp = () => {
     if (!authPhone || authPhone.length < 10) {
       alert('Please enter a valid 10-digit mobile number.');
@@ -75,7 +74,6 @@ export default function Home() {
     setAuthLoading(false);
   };
 
-  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -89,7 +87,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -123,7 +120,6 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -153,7 +149,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -186,7 +181,6 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -252,7 +246,6 @@ export default function Home() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
-  // Visual Category Circles for Logged-In Buyer
   const loggedInCategories = [
     { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
     { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
@@ -266,79 +259,38 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* ================= OPTIMIZED RESPONSIVE HEADER ================= */}
+      {/* ================= HEADER (RESPONSIVE FOR MOBILE AND DESKTOP) ================= */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-3 md:py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
           
-          {/* Top Row: Logo (Left) and Mobile Icons (Right) */}
+          {/* Top Row on Mobile: Logo (Center) and Hamburger / Icons (Sides) */}
           <div className="flex items-center justify-between w-full md:w-auto">
+            {/* 1. Mobile Hamburger Menu Button (Three Lines) */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="block md:hidden text-gray-700 hover:text-gray-950 p-2 cursor-pointer transition focus:outline-none"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
+
             {/* Logo */}
             <Link href="/" className="font-serif text-base md:text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
             </Link>
 
-            {/* Mobile-Only Icons Panel (Hidden on Desktop) */}
+            {/* Mobile Right Icons (Search and Cart) */}
             <div className="flex md:hidden items-center space-x-3.5">
-              {user ? (
-                <>
-                  {user.role === 'SELLER' ? (
-                    <Link 
-                      href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
-                      className="bg-gray-950 text-white font-bold text-[10px] px-2.5 py-1.5 rounded shadow uppercase tracking-wider"
-                    >
-                      Portal 📦
-                    </Link>
-                  ) : (
-                    <>
-                      {/* Mobile Profile Dropdown */}
-                      <div className="relative">
-                        <button 
-                          onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                          className="w-7 h-7 rounded-full bg-gray-900 text-white font-bold text-xs flex items-center justify-center uppercase"
-                        >
-                          {user.firstName ? user.firstName[0] : 'K'}
-                        </button>
-                        {isUserDropdownOpen && (
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left">
-                            <ul className="text-xs font-bold text-gray-600">
-                              <li><Link href="/" className="block px-4 py-2 hover:bg-gray-50">Orders</Link></li>
-                              <li><Link href="/" className="block px-4 py-2 hover:bg-gray-50">Invoices</Link></li>
-                              <li>
-                                <button 
-                                  onClick={() => {
-                                    logout();
-                                    setIsUserDropdownOpen(false);
-                                  }} 
-                                  className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 font-bold"
-                                >
-                                  Sign out
-                                </button>
-                              </li>
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center space-x-2.5">
-                  <button 
-                    onClick={() => openAuthModal('signin')}
-                    className="text-xs font-bold text-gray-700 hover:text-gray-900 transition"
-                  >
-                    Sign In
-                  </button>
-                  <button 
-                    onClick={() => openAuthModal('signup')}
-                    className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-3 py-1.5 rounded transition duration-150"
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              )}
+              <button 
+                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                className="text-gray-500 hover:text-gray-900 transition p-1"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </button>
 
-              {/* Floating Mobile Cart */}
               {totalCartItems > 0 && (
                 <Link 
                   href="/cart" 
@@ -353,8 +305,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Search bar (Full-width on mobile, centered on desktop) */}
-          <div className="w-full md:flex-grow md:max-w-xl md:mx-8 relative">
+          {/* Search bar (Visible on desktop, collapsible on mobile) */}
+          <div className={`w-full md:flex-grow md:max-w-xl md:mx-8 relative ${
+            isMobileSearchOpen ? 'block' : 'hidden md:block'
+          }`}>
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -365,7 +319,7 @@ export default function Home() {
               placeholder="Search wholesale products or brands"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2 md:py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 focus:ring-0 bg-gray-50/50 transition duration-150"
+              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 focus:ring-0 bg-gray-50/50 transition duration-150"
             />
           </div>
 
@@ -439,50 +393,242 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ================= HERO VIDEO BANNER ================= */}
-      <div 
-        className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
-        style={{ 
-          backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
-          backgroundColor: '#0a0a0a'
-        }}
-      >
-        <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
-          <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+      {/* ================= FAIRE-STYLE INTERACTIVE MOBILE DRAWER / SIDEBAR (LEFT) ================= */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
+          {/* Overlay Backdrop */}
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 transition-opacity" 
+          />
 
-        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-          <div className="max-w-4xl text-white space-y-6">
-            <h2 
-              className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
-              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+          {/* Drawer Container */}
+          <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-200">
+            
+            {/* Top Close Button (Floating right outside drawer) */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2 focus:outline-none"
             >
-              Find your next bestseller
-            </h2>
-            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
-              Sign up to unlock wholesale pricing with over 100 curated brands.
-            </p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
-              <button 
-                onClick={() => openAuthModal('signup')}
-                className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
-              >
-                Sign up to buy
-              </button>
-              <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
-                Are you a brand?{' '}
-                <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
-                  Sign up to sell
+              ✕
+            </button>
+
+            {/* Scrollable Drawer Content */}
+            <div className="flex-grow overflow-y-auto">
+              {/* 1. DARK TOP SECTION (Faire Style Onboarding Header) */}
+              <div className="bg-[#1a1a1a] p-6 text-white space-y-4 pt-10">
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-400 block mb-6">
+                  OAKLAHOME
                 </Link>
+
+                {user ? (
+                  <div className="space-y-4">
+                    <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Logged in</p>
+                    <p className="font-extrabold text-white text-base truncate">
+                      {user.role === 'SELLER' ? user.brandName : `Retailer: ${user.email ? user.email.split('@')[0] : user.phone}`}
+                    </p>
+                    {user.role === 'SELLER' ? (
+                      <Link
+                        href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
+                      >
+                        <span>Portal Dashboard 📦</span>
+                        <span>→</span>
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/cart"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
+                      >
+                        <span>View Cart 🛒</span>
+                        <span>→</span>
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3 font-bold text-sm">
+                    <button 
+                      onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signup'); }}
+                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
+                    >
+                      <span>Sign up to buy</span>
+                      <span className="text-neutral-500">→</span>
+                    </button>
+                    <button 
+                      onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signin'); }}
+                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
+                    >
+                      <span>Sign in</span>
+                      <span className="text-neutral-500">→</span>
+                    </button>
+                    <Link 
+                      href="/seller-onboarding"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 w-full"
+                    >
+                      <span>Sign up to sell</span>
+                      <span className="text-neutral-500">→</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. WHITE BOTTOM SECTION (Category Navigation Links) */}
+              <div className="p-6">
+                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
+                  Categories for you
+                </h3>
+                <ul className="space-y-3.5 text-sm font-semibold text-gray-600">
+                  {categories.map((catName) => (
+                    <li key={catName}>
+                      <button
+                        onClick={() => {
+                          setSelectedCategory(catName);
+                          setIsMobileMenuOpen(false); // Close drawer automatically on click!
+                        }}
+                        className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition ${
+                          selectedCategory.toLowerCase() === catName.toLowerCase() ? 'text-gray-950 font-bold' : ''
+                        }`}
+                      >
+                        <span>{catName}</span>
+                        <span className="text-gray-300">›</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+
+            {/* Logout/Support Footer inside drawer */}
+            {user && (
+              <div className="border-t border-gray-100 p-6 bg-gray-50/50">
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-3 text-sm font-bold text-red-600 hover:bg-red-50 p-2.5 rounded-lg transition text-left"
+                >
+                  <span>🚪</span>
+                  <span>Sign out</span>
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* CONDITIONAL BODY LAYOUT */}
+      {!isBuyerLoggedIn ? (
+        <>
+          <div 
+            className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
+            style={{ 
+              backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
+              backgroundColor: '#0a0a0a'
+            }}
+          >
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
+              <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+
+            <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
+              <div className="max-w-4xl text-white space-y-6">
+                <h2 
+                  className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Find your next bestseller
+                </h2>
+                <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
+                  Sign up to unlock wholesale pricing with over 100 curated brands.
+                </p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
+                  <button 
+                    onClick={() => openAuthModal('signup')}
+                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
+                  >
+                    Sign up to buy
+                  </button>
+                  <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
+                    Are you a brand?{' '}
+                    <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
+                      Sign up to sell
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          <section className="bg-white py-12 px-6 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto space-y-12 text-left">
+              <h1 
+                className="text-4xl font-light text-gray-950 tracking-tight"
+                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+              >
+                Welcome back, {user.firstName || 'kargil'}
+              </h1>
 
-      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
+              <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
+                {loggedInCategories.map((cat) => (
+                  <button 
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
+                  >
+                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
+                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-6 border-t border-gray-50">
+                <h3 
+                  className="text-2xl font-light text-gray-950 mb-6"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Recently viewed
+                </h3>
+                
+                {products.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {products.slice(0, 4).map((product) => (
+                      <div key={product.id} className="group text-left cursor-pointer">
+                        <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                          <img 
+                            src={product.image_url} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                          />
+                        </Link>
+                        <div className="mt-2.5">
+                          <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No recently viewed items.</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -547,7 +693,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
+      {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -579,7 +725,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
+      {/* SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
@@ -620,7 +766,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
+      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -907,7 +1053,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
                           >
                             Back
                           </button>
