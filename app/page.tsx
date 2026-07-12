@@ -35,18 +35,20 @@ export default function Home() {
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
 
-  // Calculate the total number of items in the cart
+  // Calculate the total number of items in the cart (with explicit types to satisfy TS)
   const totalCartItems = cart.reduce((total: number, item: any) => total + item.quantity, 0);
 
   useEffect(() => {
     async function fetchMarketplaceData() {
       try {
+        // 1. Fetch products from Supabase
         const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
         if (prodError) throw prodError;
         setProducts(prodData || []);
 
+        // 2. Fetch onboarded brands from Supabase
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*');
@@ -62,6 +64,7 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
+  // Handle OTP Sending
   const handleSendOtp = () => {
     if (!authPhone || authPhone.length < 10) {
       alert('Please enter a valid 10-digit mobile number.');
@@ -74,6 +77,7 @@ export default function Home() {
     setAuthLoading(false);
   };
 
+  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -87,6 +91,7 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -120,6 +125,7 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
+          // ------- BUYER-ONLY SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -149,6 +155,7 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
+          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -181,6 +188,7 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
+          // ------- BUYER-ONLY SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -227,11 +235,13 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
+  // Filter brands by active category capsule
   const filteredBrands = brands.filter((brand) => {
     const brandCategory = brand.category || 'Home decor';
     return selectedCategory === 'all' || brandCategory.toLowerCase() === selectedCategory.toLowerCase();
   });
 
+  // Filter products by search query
   const searchedProducts = products.filter((product) => {
     const titleMatch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
     const brandMatch = product.brand_name
@@ -264,7 +274,7 @@ export default function Home() {
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-2.5 md:py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
           
-          {/* Top Row on Mobile: Logo (Center) and Hamburger / Icons (Sides) */}
+          {/* Top Row on Mobile: Logo (Left) and Hamburger / Icons (Right) */}
           <div className="flex items-center justify-between w-full md:w-auto">
             {/* 1. Mobile Hamburger Menu Button (Three Lines) */}
             <button 
@@ -447,12 +457,16 @@ export default function Home() {
       {/* ================= FAIRE-STYLE INTERACTIVE MOBILE DRAWER / SIDEBAR (LEFT) ================= */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
+          {/* Overlay Backdrop */}
           <div 
             onClick={() => setIsMobileMenuOpen(false)}
             className="fixed inset-0 bg-black/50 transition-opacity" 
           />
 
+          {/* Drawer Container */}
           <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-200">
+            
+            {/* Top Close Button */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2 focus:outline-none"
@@ -460,7 +474,9 @@ export default function Home() {
               ✕
             </button>
 
+            {/* Scrollable Drawer Content */}
             <div className="flex-grow overflow-y-auto">
+              {/* 1. DARK TOP SECTION (Faire Style Onboarding Header) */}
               <div className="bg-[#1a1a1a] p-6 text-white space-y-4 pt-10">
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-400 block mb-6">
                   OAKLAHOME
@@ -494,6 +510,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="space-y-3 font-bold text-sm">
+                    {/* ALL SIGNUP/SIGNIN BUTTONS NOW INSIDE THE 3-LINES SIDEBAR */}
                     <button 
                       onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signup'); }}
                       className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
@@ -520,6 +537,7 @@ export default function Home() {
                 )}
               </div>
 
+              {/* 2. WHITE BOTTOM SECTION (Category Navigation Links) */}
               <div className="p-6">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Categories for you
@@ -530,7 +548,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           setSelectedCategory(catName);
-                          setIsMobileMenuOpen(false); 
+                          setIsMobileMenuOpen(false); // Close drawer automatically on click!
                         }}
                         className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition ${
                           selectedCategory.toLowerCase() === catName.toLowerCase() ? 'text-gray-950 font-bold' : ''
@@ -546,6 +564,7 @@ export default function Home() {
 
             </div>
 
+            {/* Logout/Support Footer inside drawer */}
             {user && (
               <div className="border-t border-gray-100 p-6 bg-gray-50/50">
                 <button
@@ -568,6 +587,7 @@ export default function Home() {
       {/* CONDITIONAL BODY LAYOUT */}
       {!isBuyerLoggedIn ? (
         <>
+          {/* ----------------- LOGGED OUT: STANDARD HERO VIDEO ----------------- */}
           <div 
             className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
             style={{ 
@@ -612,6 +632,7 @@ export default function Home() {
         </>
       ) : (
         <>
+          {/* ----------------- LOGGED IN BUYER HOMEPAGE (FAIRE DESIGN) ----------------- */}
           <section className="bg-white py-12 px-6 border-b border-gray-100">
             <div className="max-w-7xl mx-auto space-y-12 text-left">
               <h1 
@@ -656,8 +677,8 @@ export default function Home() {
                           />
                         </Link>
                         <div className="mt-2.5">
-                          <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                          <h4 className="font-bold text-sm text-gray-950 line-clamp-1">{product.title}</h4>
+                          <p className="text-xs text-gray-400 font-semibold mt-1 font-bold">₹{product.price?.toLocaleString('en-IN')}</p>
                         </div>
                       </div>
                     ))}
@@ -1002,6 +1023,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
+            {/* Close button (X) */}
             <button 
               onClick={() => {
                 setIsModalOpen(false);
@@ -1096,7 +1118,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
                           >
                             Back
                           </button>
