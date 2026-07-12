@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase'; // Corrected path (2 levels up)
-import { useAuth } from '../context/AuthContext'; // Corrected path (1 level up)
+import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -32,15 +32,17 @@ export default function SellerLoginPage() {
     }
 
     try {
-      // Authenticate against the "brands" table
-      const { data: brandUser, error } = await supabase
+      // Fetch matching brand users (safely as an array to handle duplicates)
+      const { data: brandUsers, error } = await supabase
         .from('brands')
         .select('*')
         .eq('email', email)
-        .eq('password', password)
-        .maybeSingle();
+        .eq('password', password);
 
       if (error) throw error;
+
+      // Check if any matching account was found
+      const brandUser = brandUsers && brandUsers.length > 0 ? brandUsers[0] : null;
 
       if (!brandUser) {
         alert('Invalid email or password. Please check your credentials.');
@@ -48,7 +50,7 @@ export default function SellerLoginPage() {
         return;
       }
 
-      // Log in as SELLER
+      // Log in as SELLER using the first matching brand profile
       login({
         email: brandUser.email,
         role: 'SELLER',
