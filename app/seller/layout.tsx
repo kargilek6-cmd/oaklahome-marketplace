@@ -8,17 +8,21 @@ import Link from 'next/link';
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, mounted } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || ''; // Fallback to empty string if null during initial SSR
 
-  // Skip authentication checks on the onboarding pages so new sellers can sign up
+  // Skip authentication checks on onboarding and login pages
   const isOnboarding = pathname.includes('/seller/onboarding');
+  const isLogin = pathname.includes('/seller/login');
+
+  // STRICT ROLE CHECK: Only users with the "SELLER" role can access the portal dashboard
+  const isSeller = user && user.role === 'SELLER';
 
   useEffect(() => {
-    if (mounted && !user && !isOnboarding) {
-      // If an unlogged user tries to access `/seller` pages, redirect them to onboarding/signup
-      router.push('/seller/onboarding');
+    if (mounted && !isSeller && !isOnboarding && !isLogin) {
+      // If a guest or a retail buyer tries to access seller dashboards, redirect them to Brand Login!
+      router.push('/seller/login');
     }
-  }, [user, mounted, isOnboarding, router]);
+  }, [user, isSeller, mounted, isOnboarding, isLogin, router]);
 
   if (!mounted) {
     return (
@@ -28,21 +32,21 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // If on the onboarding page, render without the sidebar
-  if (isOnboarding) {
+  // If on onboarding or login pages, render cleanly without the sidebar (ignores buyer session conflicts)
+  if (isOnboarding || isLogin) {
     return <>{children}</>;
   }
 
-  // If not logged in yet, render a loading screen during redirect
-  if (!user) {
+  // If not logged in as a Seller, show redirecting state
+  if (!isSeller) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <p className="text-gray-400 font-medium">Redirecting to portal...</p>
+        <p className="text-gray-400 font-medium">Redirecting to login...</p>
       </div>
     );
   }
 
-  // Faire-style sidebar links
+  // Sidebar links
   const menuItems = [
     { name: 'Products Catalog', href: `/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📦' },
     { name: 'Add Product', href: `/seller/add-product/new?brand=${encodeURIComponent(user.brandName || '')}`, icon: '➕' },
@@ -51,11 +55,11 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen bg-gray-50 flex">
       
-      {/* FIXED LEFT SIDEBAR (FAIRE STYLE) */}
+      {/* FIXED LEFT SIDEBAR */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 p-6">
         <div className="space-y-8">
           {/* Logo */}
-          <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-950 block hover:opacity-80 transition">
+          <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-950 block hover:opacity-85 transition">
             OAKLAHOME
           </Link>
 
@@ -87,7 +91,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           </nav>
         </div>
 
-        {/* Logout button at the bottom */}
+        {/* Logout button */}
         <button
           onClick={() => {
             logout();
@@ -100,7 +104,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         </button>
       </aside>
 
-      {/* MAIN CONTENT WORKSPACE (Padded to clear the fixed sidebar) */}
+      {/* MAIN CONTENT WORKSPACE */}
       <div className="flex-1 pl-64 min-h-screen">
         {children}
       </div>
