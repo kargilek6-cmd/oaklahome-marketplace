@@ -11,16 +11,16 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname() || ''; // Fallback to empty string if null during initial SSR
 
   // Skip authentication checks on onboarding and login pages
-  const isOnboarding = pathname.includes('/seller/onboarding');
-  const isLogin = pathname.includes('/seller/login');
+  const isOnboarding = pathname.includes('/seller-onboarding');
+  const isLogin = pathname.includes('/seller-login');
 
   // STRICT ROLE CHECK: Only users with the "SELLER" role can access the portal dashboard
   const isSeller = user && user.role === 'SELLER';
 
   useEffect(() => {
     if (mounted && !isSeller && !isOnboarding && !isLogin) {
-      // If a guest or a retail buyer tries to access seller dashboards, redirect them to Brand Login!
-      router.push('/seller/login');
+      // CORRECTED: Redirects unauthenticated portal attempts to the Brand Login page (/seller-login)!
+      router.push('/seller-login');
     }
   }, [user, isSeller, mounted, isOnboarding, isLogin, router]);
 
