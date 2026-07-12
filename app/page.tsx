@@ -270,14 +270,14 @@ export default function Home() {
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-3 md:py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
           
-          {/* Top Row on Mobile: Logo (Left) and Mobile Icons (Right) */}
+          {/* Top Row: Logo (Left) and Mobile Icons (Right) */}
           <div className="flex items-center justify-between w-full md:w-auto">
             {/* Logo */}
             <Link href="/" className="font-serif text-base md:text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
             </Link>
 
-            {/* Mobile-Only Icons Panel */}
+            {/* Mobile-Only Icons Panel (Hidden on Desktop) */}
             <div className="flex md:hidden items-center space-x-3.5">
               {user ? (
                 <>
@@ -322,12 +322,20 @@ export default function Home() {
                   )}
                 </>
               ) : (
-                <button 
-                  onClick={() => openAuthModal('signin')}
-                  className="text-xs font-bold text-gray-700 hover:text-gray-900 transition"
-                >
-                  Sign In
-                </button>
+                <div className="flex items-center space-x-2.5">
+                  <button 
+                    onClick={() => openAuthModal('signin')}
+                    className="text-xs font-bold text-gray-700 hover:text-gray-900 transition"
+                  >
+                    Sign In
+                  </button>
+                  <button 
+                    onClick={() => openAuthModal('signup')}
+                    className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-3 py-1.5 rounded transition duration-150"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               )}
 
               {/* Floating Mobile Cart */}
@@ -357,7 +365,7 @@ export default function Home() {
               placeholder="Search wholesale products or brands"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 focus:ring-0 bg-gray-50/50 transition duration-150"
+              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2 md:py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 focus:ring-0 bg-gray-50/50 transition duration-150"
             />
           </div>
 
@@ -431,113 +439,50 @@ export default function Home() {
         </div>
       </header>
 
-      {/* CONDITIONAL BODY */}
-      {!isBuyerLoggedIn ? (
-        <>
-          <div 
-            className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
-            style={{ 
-              backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
-              backgroundColor: '#0a0a0a'
-            }}
-          >
-            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
-              <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+      {/* ================= HERO VIDEO BANNER ================= */}
+      <div 
+        className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
+        style={{ 
+          backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
+          backgroundColor: '#0a0a0a'
+        }}
+      >
+        <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
+          <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
-            <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-              <div className="max-w-4xl text-white space-y-6">
-                <h2 
-                  className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
-                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-                >
-                  Find your next bestseller
-                </h2>
-                <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
-                  Sign up to unlock wholesale pricing with over 100 curated brands.
-                </p>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
-                  <button 
-                    onClick={() => openAuthModal('signup')}
-                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
-                  >
-                    Sign up to buy
-                  </button>
-                  <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
-                    Are you a brand?{' '}
-                    <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
-                      Sign up to sell
-                    </Link>
-                  </div>
-                </div>
+        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
+          <div className="max-w-4xl text-white space-y-6">
+            <h2 
+              className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
+              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+            >
+              Find your next bestseller
+            </h2>
+            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
+              Sign up to unlock wholesale pricing with over 100 curated brands.
+            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
+              <button 
+                onClick={() => openAuthModal('signup')}
+                className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
+              >
+                Sign up to buy
+              </button>
+              <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
+                Are you a brand?{' '}
+                <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
+                  Sign up to sell
+                </Link>
               </div>
             </div>
           </div>
-        </>
-      ) : (
-        <>
-          <section className="bg-white py-12 px-6 border-b border-gray-100">
-            <div className="max-w-7xl mx-auto space-y-12 text-left">
-              <h1 
-                className="text-4xl font-light text-gray-950 tracking-tight"
-                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-              >
-                Welcome back, {user.firstName || 'kargil'}
-              </h1>
+        </div>
+      </div>
 
-              <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
-                {loggedInCategories.map((cat) => (
-                  <button 
-                    key={cat.name}
-                    onClick={() => setSelectedCategory(cat.name)}
-                    className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
-                  >
-                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
-                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-6 border-t border-gray-50">
-                <h3 
-                  className="text-2xl font-light text-gray-950 mb-6"
-                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-                >
-                  Recently viewed
-                </h3>
-                
-                {products.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {products.slice(0, 4).map((product) => (
-                      <div key={product.id} className="group text-left cursor-pointer">
-                        <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
-                          <img 
-                            src={product.image_url} 
-                            alt="" 
-                            className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
-                          />
-                        </Link>
-                        <div className="mt-2.5">
-                          <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400">No recently viewed items.</p>
-                )}
-              </div>
-            </div>
-          </section>
-        </>
-      )}
-
-      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
+      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -602,7 +547,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
+      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -634,7 +579,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER */}
+      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
@@ -675,7 +620,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
+      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -868,7 +813,6 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             
-            {/* Close button (X) */}
             <button 
               onClick={() => {
                 setIsModalOpen(false);
