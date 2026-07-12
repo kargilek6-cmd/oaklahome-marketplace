@@ -8,10 +8,10 @@ import Link from 'next/link';
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]); // New state for onboarding brands
+  const [brands, setBrands] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all'); // Track active category filter
+  const [selectedCategory, setSelectedCategory] = useState('all'); 
   
   const { cart, addToCart } = useCart();
   const { user, login, logout } = useAuth();
@@ -19,12 +19,14 @@ export default function Home() {
   // AUTH MODAL STATES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'signin' | 'signup'>('signin');
-  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); // 'phone' is primary, 'email' is alternate
-  
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); 
   const [authEmail, setAuthEmail] = useState('');
   const [authPhone, setAuthPhone] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // USER DROPDOWN STATE
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   // OTP MOCK STATES
   const [otpSent, setOtpSent] = useState(false);
@@ -37,14 +39,12 @@ export default function Home() {
   useEffect(() => {
     async function fetchMarketplaceData() {
       try {
-        // 1. Fetch products from Supabase
         const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
         if (prodError) throw prodError;
         setProducts(prodData || []);
 
-        // 2. Fetch onboarded brands from Supabase
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*');
@@ -67,8 +67,6 @@ export default function Home() {
       return;
     }
     setAuthLoading(true);
-
-    // Generate a random 6-digit OTP
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(code);
     setOtpSent(true);
@@ -82,7 +80,6 @@ export default function Home() {
 
     try {
       if (authMethod === 'phone') {
-        // ================= OTP VERIFICATION FLOW =================
         if (enteredOtp !== generatedOtp) {
           alert('Invalid OTP. Please enter the correct code.');
           setAuthLoading(false);
@@ -91,7 +88,6 @@ export default function Home() {
 
         if (modalType === 'signup') {
           // ------- BUYER SIGN UP via PHONE -------
-          // Check if phone already exists
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -105,12 +101,11 @@ export default function Home() {
             return;
           }
 
-          // Save new buyer to "buyers" table (email defaults to phone representation)
           const { error: signUpError } = await supabase.from('buyers').insert([
             {
-              email: `user_${authPhone}@oaklahome.com`, // fallback email
+              email: `user_${authPhone}@oaklahome.com`, 
               phone: authPhone,
-              password: 'phone_otp_user', // placeholder password
+              password: 'phone_otp_user', 
             },
           ]);
 
@@ -120,13 +115,13 @@ export default function Home() {
             email: `${authPhone}@mobile`,
             phone: authPhone,
             role: 'BUYER',
+            firstName: 'kargil', 
           });
 
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
           // ------- UNIFIED SIGN IN via PHONE -------
-          // 1. Check if they are a Buyer
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -138,6 +133,7 @@ export default function Home() {
               email: buyerUser.email,
               phone: buyerUser.phone,
               role: 'BUYER',
+              firstName: 'kargil',
             });
             setIsModalOpen(false);
             alert('Logged in as Retailer!');
@@ -145,7 +141,6 @@ export default function Home() {
             return;
           }
 
-          // 2. Check if they are a Seller
           const { data: brandUser } = await supabase
             .from('brands')
             .select('*')
@@ -169,7 +164,6 @@ export default function Home() {
           alert('No registered account found with this phone number. Please sign up first.');
         }
       } else {
-        // ================= EMAIL & PASSWORD FLOW (ALTERNATE) =================
         if (!authEmail || !authPassword) {
           alert('Please fill out all required fields.');
           setAuthLoading(false);
@@ -204,6 +198,7 @@ export default function Home() {
           login({
             email: authEmail,
             role: 'BUYER',
+            firstName: 'kargil',
           });
 
           alert('Account created successfully! Welcome to Oaklahome.');
@@ -221,6 +216,7 @@ export default function Home() {
             login({
               email: buyerUser.email,
               role: 'BUYER',
+              firstName: 'kargil',
             });
             setIsModalOpen(false);
             alert('Logged in as Retailer!');
@@ -265,10 +261,9 @@ export default function Home() {
     }
   };
 
-  // Open modal helper
   const openAuthModal = (type: 'signin' | 'signup') => {
     setModalType(type);
-    setAuthMethod('phone'); // reset to primary phone method on open
+    setAuthMethod('phone'); 
     setOtpSent(false);
     setAuthPhone('');
     setAuthEmail('');
@@ -277,13 +272,11 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  // Filter brands by active category capsule
   const filteredBrands = brands.filter((brand) => {
     const brandCategory = brand.category || 'Home decor';
     return selectedCategory === 'all' || brandCategory.toLowerCase() === selectedCategory.toLowerCase();
   });
 
-  // Filter products by search query
   const searchedProducts = products.filter((product) => {
     const titleMatch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
     const brandMatch = product.brand_name
@@ -297,6 +290,17 @@ export default function Home() {
     'Beauty & wellness', 'Food & drink', 'Paper & novelty', 
     'Pets', 'Jewelry', 'Something else'
   ];
+
+  // Visual Category Circles for Logged-In Buyer
+  const loggedInCategories = [
+    { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
+    { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
+    { name: 'Tabletop decor', img: 'https://images.unsplash.com/photo-1606744824163-985d376605aa?w=150' },
+    { name: 'Decorative objects', img: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=150' },
+    { name: 'Wall art', img: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=150' }
+  ];
+
+  const isBuyerLoggedIn = user && user.role === 'BUYER';
 
   if (loading) {
     return (
@@ -352,22 +356,87 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    {/* Logged in as a Retail Buyer */}
-                    <span className="text-gray-400 font-medium">
-                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
+                    {/* ================= RETAIL BUYER HEADER (FAIRE STYLE ICONS) ================= */}
+                    <span className="text-xs text-gray-400 tracking-wider font-bold hover:text-gray-900 cursor-pointer transition">
+                      IN-EN
                     </span>
+                    
+                    {/* My Market List Link */}
                     <button 
-                      onClick={logout}
-                      className="text-red-500 hover:text-red-700 hover:underline transition"
+                      onClick={() => alert("Market list features coming in a future step!")}
+                      className="flex items-center space-x-1.5 text-gray-500 hover:text-gray-900 transition text-sm font-bold"
                     >
-                      Sign out
+                      <span>⭐️</span>
+                      <span className="hidden md:inline">My Market List</span>
                     </button>
+
+                    {/* Cart Icon Link */}
+                    <Link 
+                      href="/cart" 
+                      className="text-gray-500 hover:text-gray-900 transition flex items-center space-x-1 text-sm font-bold relative"
+                    >
+                      <span>🛒</span>
+                      <span className="hidden md:inline">Cart</span>
+                      {totalCartItems > 0 && (
+                        <span className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black">
+                          {totalCartItems}
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* INTERACTIVE USER PROFILE ICON & DROPDOWN */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        className="w-8 h-8 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs flex items-center justify-center cursor-pointer transition uppercase"
+                      >
+                        {user.firstName ? user.firstName[0] : 'K'}
+                      </button>
+
+                      {isUserDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left animate-in fade-in slide-in-from-top-3 duration-150">
+                          <div className="px-4 py-2.5 border-b border-gray-100">
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</p>
+                            <p className="font-extrabold text-gray-900 text-sm mt-0.5">Hi, {user.firstName || 'kargil'}</p>
+                          </div>
+                          
+                          {/* Menu Options */}
+                          <ul className="py-1 text-sm font-bold text-gray-600">
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Orders</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Invoices</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Settings</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Reviews</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Help Center</Link></li>
+                            <li>
+                              <button 
+                                onClick={() => alert("Referrals coming in a future step!")}
+                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition font-bold"
+                              >
+                                Refer brands to Oaklahome
+                              </button>
+                            </li>
+                          </ul>
+
+                          {/* Sign out */}
+                          <div className="border-t border-gray-100 mt-1 pt-1">
+                            <button 
+                              onClick={() => {
+                                logout();
+                                setIsUserDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 font-bold transition"
+                            >
+                              Sign out
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </>
             ) : (
               <>
-                {/* Logged out: Show standard minimal Faire header buttons */}
                 <Link 
                   href="/seller/onboarding" 
                   className="hover:text-gray-900 transition"
@@ -390,67 +459,125 @@ export default function Home() {
                 </button>
               </>
             )}
-
-            {/* Floating Cart Icon */}
-            {totalCartItems > 0 && (
-              <Link 
-                href="/cart" 
-                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
-              >
-                <span>🛒 Cart</span>
-                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
-                  {totalCartItems}
-                </span>
-              </Link>
-            )}
           </div>
         </div>
       </header>
 
-      {/* HERO VIDEO BANNER */}
-      <div 
-        className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
-        style={{ 
-          backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
-          backgroundColor: '#0a0a0a'
-        }}
-      >
-        <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
-          <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+      {/* ================= CONDITIONAL BODY LAYOUT (LOGGED OUT VS LOGGED IN BUYER) ================= */}
+      {!isBuyerLoggedIn ? (
+        <>
+          {/* ----------------- LOGGED OUT: STANDARD HERO VIDEO ----------------- */}
+          <div 
+            className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
+            style={{ 
+              backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
+              backgroundColor: '#0a0a0a'
+            }}
+          >
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
+              <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
-        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-          <div className="max-w-4xl text-white space-y-6">
-            <h2 
-              className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
-              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-            >
-              Find your next bestseller
-            </h2>
-            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
-              Sign up to unlock wholesale pricing with over 100 curated brands.
-            </p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
-              <button 
-                onClick={() => openAuthModal('signup')}
-                className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
-              >
-                Sign up to buy
-              </button>
-              <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
-                Are you a brand?{' '}
-                <Link href="/seller/onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
-                  Sign up to sell
-                </Link>
+            <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
+              <div className="max-w-4xl text-white space-y-6">
+                <h2 
+                  className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Find your next bestseller
+                </h2>
+                <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
+                  Sign up to unlock wholesale pricing with over 100 curated brands.
+                </p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
+                  <button 
+                    onClick={() => openAuthModal('signup')}
+                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
+                  >
+                    Sign up to buy
+                  </button>
+                  <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
+                    Are you a brand?{' '}
+                    <Link href="/seller/onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
+                      Sign up to sell
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          {/* ----------------- LOGGED IN BUYER HOMEPAGE (FAIRE DESIGN) ----------------- */}
+          <section className="bg-white py-12 px-6 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto space-y-12 text-left">
+              
+              {/* "Welcome back, kargil" serif title */}
+              <h1 
+                className="text-4xl font-light text-gray-950 tracking-tight"
+                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+              >
+                Welcome back, {user.firstName || 'kargil'}
+              </h1>
 
-      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
+              {/* FAIRE STYLE CATEGORY CIRCLES */}
+              <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
+                {loggedInCategories.map((cat) => (
+                  <button 
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
+                  >
+                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
+                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* RECENTLY VIEWED (Horizontal list of cards) */}
+              <div className="pt-6 border-t border-gray-50">
+                <h3 
+                  className="text-2xl font-light text-gray-950 mb-6"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Recently viewed
+                </h3>
+                
+                {/* Horizontal carousel showing 3 products */}
+                {products.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {products.slice(0, 4).map((product) => (
+                      <div key={product.id} className="group text-left cursor-pointer">
+                        <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                          <img 
+                            src={product.image_url} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                          />
+                        </Link>
+                        <div className="mt-2.5">
+                          <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No recently viewed items.</p>
+                )}
+              </div>
+
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ================= SECTION 1: THE "FEATURED BRANDS" SECTION ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -459,6 +586,7 @@ export default function Home() {
           Featured brands
         </h2>
 
+        {/* HORIZONTAL CAPSULES */}
         <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
           {categories.map((catName) => {
             const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
@@ -478,6 +606,7 @@ export default function Home() {
           })}
         </div>
 
+        {/* BRANDS LIST */}
         <div className="mt-12">
           {filteredBrands.length > 0 ? (
             <div className="space-y-16">
@@ -513,7 +642,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
+      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -545,7 +674,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER */}
+      {/* ================= SECTION 3: THE "FOR ANY RETAILER" OLIVE GREEN PROMO BANNER ================= */}
       <section className="bg-[#4a5015] py-16 px-12 text-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center">
           
@@ -586,7 +715,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
+      {/* ================= SECTION 4: THE PRODUCTS CATALOG GRID ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -734,7 +863,7 @@ export default function Home() {
               <div className="flex items-center space-x-6 pt-6 border-t border-gray-50 md:border-none">
                 <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 1.9.24 2.502.542a4.413 4.413 0 011.583 1.503c.3.6.49 1.363.542 2.502.044.925.054 1.28.054 3.71s-.01 2.784-.054 3.71c-.052 1.139-.24 1.9-.542 2.502a4.413 4.413 0 01-1.503 1.583c-.6.3-1.363.49-2.502.542-.925.044-1.28.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-1.9-.24-2.502-.542a4.413 4.413 0 01-1.583-1.503c-.3-.6-.49-1.363-.542-2.502C2.01 14.821 2 14.466 2 12s.01-2.784.054-3.71c.052-1.139.24-1.9.542-2.502a4.413 4.413 0 011.503-1.583c.6-.3 1.363-.49 2.502-.542.925-.044 1.28-.054 3.71-.054zM12 6.865a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 1.802a3.333 3.333 0 110 6.666 3.333 3.333 0 010-6.666zm5.338-3.205a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 1.9.24 2.502.542a4.413 4.413 0 011.583 1.503c.3.6.49 1.363.542 2.502.044.925.054 1.28.054 3.71s-.01 2.784-.054 3.71c-.052 1.139-.24 1.9-.542 2.502a4.413 4.413 0 01-1.503 1.583c-.6.3-1.363-.49-2.502.542-.925.044-1.28.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-1.9-.24-2.502-.542a4.413 4.413 0 01-1.583-1.503c-.3-.6-.49-1.363-.542-2.502C2.01 14.821 2 14.466 2 12s.01-2.784.054-3.71c.052-1.139.24-1.9.542-2.502a4.413 4.413 0 011.503-1.583c.6-.3 1.363-.49 2.502-.542.925-.044 1.28-.054 3.71-.054zM12 6.865a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 1.802a3.333 3.333 0 110 6.666 3.333 3.333 0 010-6.666zm5.338-3.205a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" clipRule="evenodd" />
                   </svg>
                 </Link>
                 <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
@@ -799,7 +928,6 @@ export default function Home() {
                 {modalType === 'signin' ? 'Sign in to Oaklahome' : 'Sign up to buy wholesale'}
               </h2>
 
-              {/* METHOD TABS (PHONE VS EMAIL) - Shown only before OTP is sent */}
               {!otpSent && (
                 <div className="flex border-b border-gray-100 mb-6 text-xs font-bold text-gray-400 uppercase tracking-wider">
                   <button
@@ -823,7 +951,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* MOCK OTP GREEN SUCCESS BOX */}
               {otpSent && authMethod === 'phone' && (
                 <div className="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 mb-6 text-sm font-semibold text-left animate-in fade-in duration-200">
                   <p>✨ Demo OTP sent successfully!</p>
@@ -834,12 +961,9 @@ export default function Home() {
               )}
 
               <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
-                
-                {/* ----------------- METHOD 1: MOBILE PHONE + OTP ----------------- */}
                 {authMethod === 'phone' && (
                   <>
                     {!otpSent ? (
-                      /* Phase 1: Enter Phone Number */
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mobile Phone Number *</label>
                         <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden focus-within:ring-1 focus-within:ring-gray-400">
@@ -863,7 +987,6 @@ export default function Home() {
                         </button>
                       </div>
                     ) : (
-                      /* Phase 2: Enter & Verify 6-digit OTP */
                       <div className="space-y-4 animate-in slide-in-from-bottom-3 duration-200">
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter 6-Digit OTP *</label>
@@ -897,7 +1020,6 @@ export default function Home() {
                   </>
                 )}
 
-                {/* ----------------- METHOD 2: EMAIL & PASSWORD (ALTERNATE) ----------------- */}
                 {authMethod === 'email' && (
                   <>
                     <div>
@@ -949,10 +1071,8 @@ export default function Home() {
                     </button>
                   </>
                 )}
-
               </form>
 
-              {/* Toggle links at the bottom */}
               <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                 {modalType === 'signin' ? (
                   <p>
@@ -976,7 +1096,6 @@ export default function Home() {
                   </p>
                 )}
               </div>
-
             </div>
           </div>
         </div>

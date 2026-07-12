@@ -8,6 +8,7 @@ export interface UserSession {
   brandName?: string;
   firstName?: string;
   lastName?: string;
+  phone?: string; // ADDED PHONE SO COMPILER STAYS HEALTHY
 }
 
 interface AuthContextType {
