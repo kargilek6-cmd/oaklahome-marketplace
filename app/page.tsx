@@ -224,6 +224,7 @@ export default function Home() {
     }
   };
 
+  // Open modal helper
   const openAuthModal = (type: 'signin' | 'signup') => {
     setModalType(type);
     setAuthMethod('phone'); 
@@ -265,61 +266,23 @@ export default function Home() {
     { name: 'Wall art', img: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=150' }
   ];
 
+  const isUserLoggedIn = user !== null;
   const isBuyerLoggedIn = user && user.role === 'BUYER';
 
   return (
     <main className="min-h-screen bg-white">
       
-      {/* ================= OPTIMIZED COMPACT RESPONSIVE HEADER ================= */}
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-2.5 md:py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
+      {/* MINIMAL HEADER */}
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* Top Row on Mobile: Logo (Left) and Hamburger / Icons (Right) */}
-          <div className="flex items-center justify-between w-full md:w-auto">
-            {/* 1. Mobile Hamburger Menu Button (Three Lines) */}
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="block md:hidden text-gray-700 hover:text-gray-950 p-2 cursor-pointer transition focus:outline-none"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16"></path>
-              </svg>
-            </button>
+          {/* Logo */}
+          <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
+            OAKLAHOME
+          </Link>
 
-            {/* Logo */}
-            <Link href="/" className="font-serif text-base md:text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
-              OAKLAHOME
-            </Link>
-
-            {/* Mobile Right Icons (Search and Cart) */}
-            <div className="flex md:hidden items-center space-x-3.5">
-              <button 
-                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                className="text-gray-500 hover:text-gray-900 transition p-1"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-              </button>
-
-              {totalCartItems > 0 && (
-                <Link 
-                  href="/cart" 
-                  className="bg-blue-50 text-blue-700 p-2 rounded-xl flex items-center space-x-1"
-                >
-                  <span>🛒</span>
-                  <span className="bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[9px] font-black">
-                    {totalCartItems}
-                  </span>
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* Search bar (Visible on desktop, collapsible on mobile) */}
-          <div className={`w-full md:flex-grow md:max-w-xl md:mx-8 relative ${
-            isMobileSearchOpen ? 'block' : 'hidden md:block'
-          }`}>
+          {/* Search bar */}
+          <div className="flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -334,8 +297,8 @@ export default function Home() {
             />
           </div>
 
-          {/* Desktop Menu (Hidden on mobile) */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700">
+          {/* Navigation Links */}
+          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
             {user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -352,77 +315,16 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    {/* RETAIL BUYER HEADER */}
-                    <span className="text-xs text-gray-400 tracking-wider font-bold hover:text-gray-900 cursor-pointer transition">
-                      IN-EN
+                    {/* Logged in as a Retail Buyer */}
+                    <span className="text-gray-400 font-medium">
+                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
                     </span>
-                    
                     <button 
-                      onClick={() => alert("Market list features coming in a future step!")}
-                      className="flex items-center space-x-1.5 text-gray-500 hover:text-gray-900 transition text-sm font-bold"
+                      onClick={logout}
+                      className="text-red-500 hover:text-red-700 hover:underline transition"
                     >
-                      <span>⭐️</span>
-                      <span className="hidden md:inline">My Market List</span>
+                      Sign out
                     </button>
-
-                    <Link 
-                      href="/cart" 
-                      className="text-gray-500 hover:text-gray-900 transition flex items-center space-x-1 text-sm font-bold relative"
-                    >
-                      <span>🛒</span>
-                      <span className="hidden md:inline">Cart</span>
-                      {totalCartItems > 0 && (
-                        <span className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black">
-                          {totalCartItems}
-                        </span>
-                      )}
-                    </Link>
-
-                    <div className="relative">
-                      <button 
-                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                        className="w-8 h-8 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs flex items-center justify-center cursor-pointer transition uppercase"
-                      >
-                        {user.firstName ? user.firstName[0] : 'K'}
-                      </button>
-
-                      {isUserDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left animate-in fade-in slide-in-from-top-3 duration-150">
-                          <div className="px-4 py-2.5 border-b border-gray-100">
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</p>
-                            <p className="font-extrabold text-gray-900 text-sm mt-0.5">Hi, {user.firstName || 'kargil'}</p>
-                          </div>
-                          
-                          <ul className="py-1 text-sm font-bold text-gray-600">
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Orders</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Invoices</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Settings</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Reviews</Link></li>
-                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Help Center</Link></li>
-                            <li>
-                              <button 
-                                onClick={() => alert("Referrals coming in a future step!")}
-                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition font-bold"
-                              >
-                                Refer brands to Oaklahome
-                              </button>
-                            </li>
-                          </ul>
-
-                          <div className="border-t border-gray-100 mt-1 pt-1">
-                            <button 
-                              onClick={() => {
-                                logout();
-                                setIsUserDropdownOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 font-bold transition"
-                            >
-                              Sign out
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </>
                 )}
               </>
@@ -450,142 +352,25 @@ export default function Home() {
                 </button>
               </>
             )}
+
+            {/* Floating Cart Icon */}
+            {totalCartItems > 0 && (
+              <Link 
+                href="/cart" 
+                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
+              >
+                <span>🛒 Cart</span>
+                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
+                  {totalCartItems}
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
 
-      {/* ================= FAIRE-STYLE INTERACTIVE MOBILE DRAWER / SIDEBAR (LEFT) ================= */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
-          {/* Overlay Backdrop */}
-          <div 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/50 transition-opacity" 
-          />
-
-          {/* Drawer Container */}
-          <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-200">
-            
-            {/* Top Close Button */}
-            <button 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2 focus:outline-none"
-            >
-              ✕
-            </button>
-
-            {/* Scrollable Drawer Content */}
-            <div className="flex-grow overflow-y-auto">
-              {/* 1. DARK TOP SECTION (Faire Style Onboarding Header) */}
-              <div className="bg-[#1a1a1a] p-6 text-white space-y-4 pt-10">
-                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-400 block mb-6">
-                  OAKLAHOME
-                </Link>
-
-                {user ? (
-                  <div className="space-y-4">
-                    <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Logged in</p>
-                    <p className="font-extrabold text-white text-base truncate">
-                      {user.role === 'SELLER' ? user.brandName : `Retailer: ${user.email ? user.email.split('@')[0] : user.phone}`}
-                    </p>
-                    {user.role === 'SELLER' ? (
-                      <Link
-                        href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
-                      >
-                        <span>Portal Dashboard 📦</span>
-                        <span>→</span>
-                      </Link>
-                    ) : (
-                      <Link
-                        href="/cart"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
-                      >
-                        <span>View Cart 🛒</span>
-                        <span>→</span>
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3 font-bold text-sm">
-                    {/* ALL SIGNUP/SIGNIN BUTTONS NOW INSIDE THE 3-LINES SIDEBAR */}
-                    <button 
-                      onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signup'); }}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
-                    >
-                      <span>Sign up to buy</span>
-                      <span className="text-neutral-500">→</span>
-                    </button>
-                    <button 
-                      onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signin'); }}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
-                    >
-                      <span>Sign in</span>
-                      <span className="text-neutral-500">→</span>
-                    </button>
-                    <Link 
-                      href="/seller-onboarding"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 w-full"
-                    >
-                      <span>Sign up to sell</span>
-                      <span className="text-neutral-500">→</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 2. WHITE BOTTOM SECTION (Category Navigation Links) */}
-              <div className="p-6">
-                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
-                  Categories for you
-                </h3>
-                <ul className="space-y-3.5 text-sm font-semibold text-gray-600">
-                  {categories.map((catName) => (
-                    <li key={catName}>
-                      <button
-                        onClick={() => {
-                          setSelectedCategory(catName);
-                          setIsMobileMenuOpen(false); // Close drawer automatically on click!
-                        }}
-                        className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition ${
-                          selectedCategory.toLowerCase() === catName.toLowerCase() ? 'text-gray-950 font-bold' : ''
-                        }`}
-                      >
-                        <span>{catName}</span>
-                        <span className="text-gray-300">›</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-            </div>
-
-            {/* Logout/Support Footer inside drawer */}
-            {user && (
-              <div className="border-t border-gray-100 p-6 bg-gray-50/50">
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-3 text-sm font-bold text-red-600 hover:bg-red-50 p-2.5 rounded-lg transition text-left"
-                >
-                  <span>🚪</span>
-                  <span>Sign out</span>
-                </button>
-              </div>
-            )}
-
-          </div>
-        </div>
-      )}
-
-      {/* CONDITIONAL BODY LAYOUT */}
-      {!isBuyerLoggedIn ? (
+      {/* ================= CONDITIONAL BODY LAYOUT (LOGGED OUT VS ANY LOGGED IN USER) ================= */}
+      {!isUserLoggedIn ? (
         <>
           {/* ----------------- LOGGED OUT: STANDARD HERO VIDEO ----------------- */}
           <div 
@@ -632,63 +417,83 @@ export default function Home() {
         </>
       ) : (
         <>
-          {/* ----------------- LOGGED IN BUYER HOMEPAGE (FAIRE DESIGN) ----------------- */}
-          <section className="bg-white py-12 px-6 border-b border-gray-100">
-            <div className="max-w-7xl mx-auto space-y-12 text-left">
-              <h1 
-                className="text-4xl font-light text-gray-950 tracking-tight"
-                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-              >
-                Welcome back, {user.firstName || 'kargil'}
-              </h1>
-
-              <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
-                {loggedInCategories.map((cat) => (
-                  <button 
-                    key={cat.name}
-                    onClick={() => setSelectedCategory(cat.name)}
-                    className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
-                  >
-                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
-                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-6 border-t border-gray-50">
-                <h3 
-                  className="text-2xl font-light text-gray-950 mb-6"
+          {/* ----------------- LOGGED IN HOMEPAGE (ADAPTS FOR BUYERS VS SELLERS) ----------------- */}
+          {isBuyerLoggedIn ? (
+            <section className="bg-white py-12 px-6 border-b border-gray-100">
+              <div className="max-w-7xl mx-auto space-y-12 text-left">
+                {/* "Welcome back, kargil" greeting */}
+                <h1 
+                  className="text-4xl font-light text-gray-950 tracking-tight"
                   style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
                 >
-                  Recently viewed
-                </h3>
-                
-                {products.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {products.slice(0, 4).map((product) => (
-                      <div key={product.id} className="group text-left cursor-pointer">
-                        <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
-                          <img 
-                            src={product.image_url} 
-                            alt="" 
-                            className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
-                          />
-                        </Link>
-                        <div className="mt-2.5">
-                          <h4 className="font-bold text-sm text-gray-950 line-clamp-1">{product.title}</h4>
-                          <p className="text-xs text-gray-400 font-semibold mt-1 font-bold">₹{product.price?.toLocaleString('en-IN')}</p>
-                        </div>
+                  Welcome back, {user.firstName || 'kargil'}
+                </h1>
+
+                {/* FAIRE STYLE CATEGORY CIRCLES */}
+                <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
+                  {loggedInCategories.map((cat) => (
+                    <button 
+                      key={cat.name}
+                      onClick={() => setSelectedCategory(cat.name)}
+                      className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
+                    >
+                      <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
+                        <img src={cat.img} alt="" className="w-full h-full object-cover" />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400">No recently viewed items.</p>
-                )}
+                      <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* RECENTLY VIEWED */}
+                <div className="pt-6 border-t border-gray-50">
+                  <h3 
+                    className="text-2xl font-light text-gray-950 mb-6"
+                    style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                  >
+                    Recently viewed
+                  </h3>
+                  
+                  {products.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      {products.slice(0, 4).map((product) => (
+                        <div key={product.id} className="group text-left cursor-pointer">
+                          <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                            <img 
+                              src={product.image_url} 
+                              alt="" 
+                              className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                            />
+                          </Link>
+                          <div className="mt-2.5">
+                            <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                            <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">No recently viewed items.</p>
+                  )}
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          ) : (
+            /* IF SELLER IS LOGGED IN & BROWSING HOMEPAGE (HIDES THE PUBLIC SIGNUP VIDEO HERO!) */
+            <section className="bg-white py-10 px-6 border-b border-gray-100">
+              <div className="max-w-7xl mx-auto text-left">
+                <h1 
+                  className="text-4xl font-light text-gray-950 tracking-tight"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Browsing Oaklahome as Wholesaler: <strong className="text-gray-900 font-black">{user.brandName}</strong>
+                </h1>
+                <p className="text-sm text-gray-500 mt-2">
+                  You are currently logged in as a seller. You can browse the public market below, or click <Link href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`} className="text-blue-600 font-bold hover:underline">Go to Portal</Link> to manage your catalog!
+                </p>
+              </div>
+            </section>
+          )}
         </>
       )}
 
@@ -1118,7 +923,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
                           >
                             Back
                           </button>
