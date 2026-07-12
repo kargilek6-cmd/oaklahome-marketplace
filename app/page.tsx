@@ -285,25 +285,20 @@ export default function Home() {
         {/* 2. Soft Dark Vignette Mask for High-End Text Contrast */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
-        {/* 3. AESTHETIC TYPOGRAPHY OVERLAY */}
+        {/* 3. AESTHETIC TYPOGRAPHY OVERLAY (WIDENED FOR SINGLE-LINE RENDER) */}
         <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-          <div className="max-w-xl text-white space-y-6">
+          <div className="max-w-4xl text-white space-y-6"> {/* Changed from max-w-xl to max-w-4xl to allow single-line rendering */}
             
-            {/* Elegant Top Tag */}
-            <span className="text-[10px] md:text-xs font-bold text-amber-300 tracking-[0.35em] uppercase block">
-              OAKLAHOME HOME DECOR
-            </span>
-
-            {/* Premium Editorial Serif Headline (REVERTED TO BESTSELLER) */}
+            {/* Premium Editorial Serif Headline (REVERTED TO BESTSELLER, single-line) */}
             <h2 
-              className="text-5xl md:text-6xl font-light leading-[1.1] tracking-tight text-white"
+              className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
               style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
             >
               Find your next bestseller
             </h2>
 
-            {/* Minimal, tracked subtitle (UPDATED TO 100 BRANDS) */}
-            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light max-w-lg leading-relaxed">
+            {/* Minimal, tracked subtitle (UPDATED TO 100 BRANDS, single-line) */}
+            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
               Sign up to unlock wholesale pricing with over 100 curated brands.
             </p>
             
