@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext'; // Import our auth hook
 import Link from 'next/link';
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]); // New state for onboarding brands
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all'); // Track active category filter
@@ -27,28 +28,32 @@ export default function Home() {
   const totalCartItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchMarketplaceData() {
       try {
-        const { data, error } = await supabase
+        // 1. Fetch products from Supabase
+        const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
+        if (prodError) throw prodError;
+        setProducts(prodData || []);
 
-        if (error) throw error;
-        setProducts(data || []);
+        // 2. Fetch onboarded brands from Supabase
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('*');
+        if (brandError) throw brandError;
+        setBrands(brandData || []);
+
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching marketplace data:', error);
       } finally {
         setLoading(false);
       }
     }
-    fetchProducts();
+    fetchMarketplaceData();
   }, []);
 
-  const openAuthModal = (type: 'signin' | 'signup') => {
-    setModalType(type);
-    setIsModalOpen(true);
-  };
-
+  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -61,6 +66,7 @@ export default function Home() {
 
     try {
       if (modalType === 'signup') {
+        // ================= BUYER SIGN UP =================
         const { data: existingBuyer } = await supabase
           .from('buyers')
           .select('*')
@@ -92,6 +98,7 @@ export default function Home() {
         alert('Account created successfully! Welcome to Oaklahome.');
         setIsModalOpen(false);
       } else {
+        // ================= UNIFIED SIGN IN =================
         const { data: buyerUser } = await supabase
           .from('buyers')
           .select('*')
@@ -144,18 +151,24 @@ export default function Home() {
     }
   };
 
-  // COMBINED FILTER: Handles both search input AND selected category capsule
-  const filteredProducts = products.filter((product) => {
+  const openAuthModal = (type: 'signin' | 'signup') => {
+    setModalType(type);
+    setIsModalOpen(true);
+  };
+
+  // Filter brands by the active category capsule
+  const filteredBrands = brands.filter((brand) => {
+    const brandCategory = brand.category || 'Home decor';
+    return selectedCategory === 'all' || brandCategory.toLowerCase() === selectedCategory.toLowerCase();
+  });
+
+  // Filter products by search query
+  const searchedProducts = products.filter((product) => {
     const titleMatch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
     const brandMatch = product.brand_name
       ? product.brand_name.toLowerCase().includes(searchQuery.toLowerCase())
       : false;
-    
-    // Check category matching (fallback to 'Home decor' if null)
-    const productCategory = product.category || 'Home decor';
-    const categoryMatch = selectedCategory === 'all' || productCategory.toLowerCase() === selectedCategory.toLowerCase();
-
-    return (titleMatch || brandMatch) && categoryMatch;
+    return titleMatch || brandMatch;
   });
 
   const categories = [
@@ -175,13 +188,16 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* HEADER */}
+      {/* MINIMAL HEADER */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
+          
+          {/* Logo */}
           <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
             OAKLAHOME
           </Link>
 
+          {/* Search bar */}
           <div className="flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -197,6 +213,7 @@ export default function Home() {
             />
           </div>
 
+          {/* Navigation Links */}
           <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
             {user ? (
               <>
@@ -251,6 +268,7 @@ export default function Home() {
               </>
             )}
 
+            {/* Floating Cart Icon */}
             {totalCartItems > 0 && (
               <Link 
                 href="/cart" 
@@ -266,7 +284,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* HERO VIDEO BANNER */}
+      {/* ================= HERO VIDEO BANNER ================= */}
       <div 
         className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
         style={{ 
@@ -309,41 +327,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ================= NEW BANNER 1: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
-      <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
-        <div className="max-w-7xl mx-auto space-y-12">
-          {/* Text grid matching Faire */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-3">
-              <h2 
-                className="text-3xl md:text-4xl font-light text-[#dfc28c]"
-                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-              >
-                We’re Oaklahome.
-              </h2>
-              <p className="text-xl md:text-2xl font-bold tracking-tight">
-                The platform for retailers.
-              </p>
-            </div>
-            <div>
-              <p className="text-base md:text-lg text-neutral-200 font-light leading-relaxed">
-                We make it easy for you to discover new products and connect with brands that make your shop stand out.
-              </p>
-            </div>
-          </div>
-
-          {/* Wide Landscape Image of Boutique Storefront */}
-          <div className="w-full h-[450px] rounded-xl overflow-hidden shadow-xl border border-white/5">
-            <img 
-              src="https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=1600&auto=format&fit=crop&q=80" 
-              alt="Cozy boutique shop storefront" 
-              className="w-full h-full object-cover object-center"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ================= NEW BANNER 2: THE "FEATURED BRANDS" SECTION ================= */}
+      {/* ================= NEW SECTION 1: THE "FEATURED BRANDS" SECTION (MOVED UP) ================= */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -372,12 +356,90 @@ export default function Home() {
           })}
         </div>
 
-        {/* PRODUCT GRID SECTION */}
+        {/* DYNAMIC BRANDS LIST (SHOWING BRAND CARDS) */}
         <div className="mt-12">
-          {filteredProducts.length > 0 ? (
+          {filteredBrands.length > 0 ? (
+            <div className="space-y-16">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {filteredBrands.map((brand) => (
+                  <div key={brand.id} className="group overflow-hidden">
+                    {/* Brand Card Cover Image */}
+                    <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                      <img 
+                        src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600'} 
+                        alt={brand.brand_name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    </Link>
+                    {/* Brand Details below the card */}
+                    <div className="mt-3">
+                      <Link 
+                        href={`/brand/${encodeURIComponent(brand.brand_name)}`}
+                        className="font-bold text-sm text-gray-900 hover:underline hover:text-blue-600 transition"
+                      >
+                        {brand.brand_name}
+                      </Link>
+                      <p className="text-xs text-gray-500 font-medium mt-1">Swoosh, India</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
+              <p className="text-gray-500 text-lg font-medium">No brands found</p>
+              <p className="text-gray-400 text-sm mt-1">We couldn't find any brands matching "{selectedCategory}" in this category.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ================= SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER ================= */}
+      <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-3">
+              <h2 
+                className="text-3xl md:text-4xl font-light text-[#dfc28c]"
+                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+              >
+                We’re Oaklahome.
+              </h2>
+              <p className="text-xl md:text-2xl font-bold tracking-tight">
+                The platform for retailers.
+              </p>
+            </div>
+            <div>
+              <p className="text-base md:text-lg text-neutral-200 font-light leading-relaxed">
+                We make it easy for you to discover new products and connect with brands that make your shop stand out.
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full h-[450px] rounded-xl overflow-hidden shadow-xl border border-white/5">
+            <img 
+              src="https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=1600&auto=format&fit=crop&q=80" 
+              alt="Cozy boutique shop storefront" 
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ================= NEW SECTION 3: THE PRODUCTS CATALOG GRID ================= */}
+      <section className="max-w-7xl mx-auto py-16 px-6">
+        <h2 
+          className="text-3xl font-light text-gray-950 mb-8"
+          style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+        >
+          Explore wholesale products
+        </h2>
+
+        <div className="mt-12">
+          {searchedProducts.length > 0 ? (
             <div className="space-y-16">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {filteredProducts.map((product) => (
+                {searchedProducts.map((product) => (
                   <div 
                     key={product.id} 
                     className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between"
@@ -442,21 +504,11 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-
-              {/* FAIRE STYLE CATEGORY FOOTER BUTTON */}
-              <div className="flex justify-start">
-                <button
-                  onClick={() => alert(`Shop all ${selectedCategory} products coming in a future step!`)}
-                  className="border border-gray-900 hover:bg-gray-50 text-gray-900 font-bold px-6 py-3 rounded text-xs uppercase tracking-widest transition duration-150"
-                >
-                  Shop all {selectedCategory === 'All' ? 'products' : selectedCategory}
-                </button>
-              </div>
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
               <p className="text-gray-500 text-lg font-medium">No results found</p>
-              <p className="text-gray-400 text-sm mt-1">We couldn't find any products matching "{selectedCategory}" in this catalog.</p>
+              <p className="text-gray-400 text-sm mt-1">We couldn't find any products matching your search.</p>
             </div>
           )}
         </div>
