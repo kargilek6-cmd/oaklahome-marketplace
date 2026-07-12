@@ -87,7 +87,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -121,7 +120,6 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -151,7 +149,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -184,7 +181,6 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -250,11 +246,22 @@ export default function Home() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
+  // Visual Category Circles for Logged-In Buyer
+  const loggedInCategories = [
+    { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
+    { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
+    { name: 'Tabletop decor', img: 'https://images.unsplash.com/photo-1606744824163-985d376605aa?w=150' },
+    { name: 'Decorative objects', img: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=150' },
+    { name: 'Wall art', img: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=150' }
+  ];
+
+  const isBuyerLoggedIn = user && user.role === 'BUYER';
+
   return (
     <main className="min-h-screen bg-white">
       
       {/* ================= OPTIMIZED COMPACT RESPONSIVE HEADER ================= */}
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-2.5 md:py-4"> {/* Reduced mobile height (py-2.5) */}
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-2.5 md:py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
           
           {/* Top Row on Mobile: Logo (Center) and Hamburger / Icons (Sides) */}
@@ -335,15 +342,77 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    <span className="text-gray-400 font-medium">
-                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
+                    {/* RETAIL BUYER HEADER */}
+                    <span className="text-xs text-gray-400 tracking-wider font-bold hover:text-gray-900 cursor-pointer transition">
+                      IN-EN
                     </span>
+                    
                     <button 
-                      onClick={logout}
-                      className="text-red-500 hover:text-red-700 hover:underline transition"
+                      onClick={() => alert("Market list features coming in a future step!")}
+                      className="flex items-center space-x-1.5 text-gray-500 hover:text-gray-900 transition text-sm font-bold"
                     >
-                      Sign out
+                      <span>⭐️</span>
+                      <span className="hidden md:inline">My Market List</span>
                     </button>
+
+                    <Link 
+                      href="/cart" 
+                      className="text-gray-500 hover:text-gray-900 transition flex items-center space-x-1 text-sm font-bold relative"
+                    >
+                      <span>🛒</span>
+                      <span className="hidden md:inline">Cart</span>
+                      {totalCartItems > 0 && (
+                        <span className="absolute -top-3 -right-3 bg-blue-600 text-white rounded-full px-1.5 py-0.2 text-[10px] font-black">
+                          {totalCartItems}
+                        </span>
+                      )}
+                    </Link>
+
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        className="w-8 h-8 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs flex items-center justify-center cursor-pointer transition uppercase"
+                      >
+                        {user.firstName ? user.firstName[0] : 'K'}
+                      </button>
+
+                      {isUserDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 text-left animate-in fade-in slide-in-from-top-3 duration-150">
+                          <div className="px-4 py-2.5 border-b border-gray-100">
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</p>
+                            <p className="font-extrabold text-gray-900 text-sm mt-0.5">Hi, {user.firstName || 'kargil'}</p>
+                          </div>
+                          
+                          <ul className="py-1 text-sm font-bold text-gray-600">
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Orders</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Invoices</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Settings</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Reviews</Link></li>
+                            <li><Link href="/" className="block px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition">Help Center</Link></li>
+                            <li>
+                              <button 
+                                onClick={() => alert("Referrals coming in a future step!")}
+                                className="w-full text-left px-4 py-2.5 hover:bg-gray-50 hover:text-gray-900 transition font-bold"
+                              >
+                                Refer brands to Oaklahome
+                              </button>
+                            </li>
+                          </ul>
+
+                          <div className="border-t border-gray-100 mt-1 pt-1">
+                            <button 
+                              onClick={() => {
+                                logout();
+                                setIsUserDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 font-bold transition"
+                            >
+                              Sign out
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </>
@@ -371,18 +440,6 @@ export default function Home() {
                 </button>
               </>
             )}
-
-            {totalCartItems > 0 && (
-              <Link 
-                href="/cart" 
-                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
-              >
-                <span>🛒 Cart</span>
-                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
-                  {totalCartItems}
-                </span>
-              </Link>
-            )}
           </div>
         </div>
       </header>
@@ -390,16 +447,12 @@ export default function Home() {
       {/* ================= FAIRE-STYLE INTERACTIVE MOBILE DRAWER / SIDEBAR (LEFT) ================= */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
-          {/* Overlay Backdrop */}
           <div 
             onClick={() => setIsMobileMenuOpen(false)}
             className="fixed inset-0 bg-black/50 transition-opacity" 
           />
 
-          {/* Drawer Container */}
           <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-200">
-            
-            {/* Top Close Button */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2 focus:outline-none"
@@ -407,9 +460,7 @@ export default function Home() {
               ✕
             </button>
 
-            {/* Scrollable Drawer Content */}
             <div className="flex-grow overflow-y-auto">
-              {/* 1. DARK TOP SECTION (Faire Style Onboarding Header) */}
               <div className="bg-[#1a1a1a] p-6 text-white space-y-4 pt-10">
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-400 block mb-6">
                   OAKLAHOME
@@ -443,7 +494,6 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="space-y-3 font-bold text-sm">
-                    {/* ALL SIGNUP/SIGNIN BUTTONS NOW INSIDE THE 3-LINES SIDEBAR */}
                     <button 
                       onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signup'); }}
                       className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
@@ -459,7 +509,7 @@ export default function Home() {
                       <span className="text-neutral-500">→</span>
                     </button>
                     <Link 
-                      href="/seller/onboarding"
+                      href="/seller-onboarding"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex justify-between items-center hover:text-neutral-200 transition py-2 w-full"
                     >
@@ -470,7 +520,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* 2. WHITE BOTTOM SECTION (Category Navigation Links) */}
               <div className="p-6">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Categories for you
@@ -481,7 +530,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           setSelectedCategory(catName);
-                          setIsMobileMenuOpen(false); // Close drawer automatically on click!
+                          setIsMobileMenuOpen(false); 
                         }}
                         className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition ${
                           selectedCategory.toLowerCase() === catName.toLowerCase() ? 'text-gray-950 font-bold' : ''
@@ -497,7 +546,6 @@ export default function Home() {
 
             </div>
 
-            {/* Logout/Support Footer inside drawer */}
             {user && (
               <div className="border-t border-gray-100 p-6 bg-gray-50/50">
                 <button
@@ -517,48 +565,111 @@ export default function Home() {
         </div>
       )}
 
-      {/* HERO VIDEO BANNER */}
-      <div 
-        className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
-        style={{ 
-          backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
-          backgroundColor: '#0a0a0a'
-        }}
-      >
-        <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
-          <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+      {/* CONDITIONAL BODY LAYOUT */}
+      {!isBuyerLoggedIn ? (
+        <>
+          <div 
+            className="relative w-full h-[550px] bg-cover bg-center overflow-hidden flex items-center"
+            style={{ 
+              backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80')",
+              backgroundColor: '#0a0a0a'
+            }}
+          >
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
+              <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
-        <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-          <div className="max-w-4xl text-white space-y-6">
-            <h2 
-              className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
-              style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
-            >
-              Find your next bestseller
-            </h2>
-            <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
-              Sign up to unlock wholesale pricing with over 100 curated brands.
-            </p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
-              <button 
-                onClick={() => openAuthModal('signup')}
-                className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
-              >
-                Sign up to buy
-              </button>
-              <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
-                Are you a brand?{' '}
-                <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
-                  Sign up to sell
-                </Link>
+            <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
+              <div className="max-w-4xl text-white space-y-6">
+                <h2 
+                  className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Find your next bestseller
+                </h2>
+                <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
+                  Sign up to unlock wholesale pricing with over 100 curated brands.
+                </p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
+                  <button 
+                    onClick={() => openAuthModal('signup')}
+                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
+                  >
+                    Sign up to buy
+                  </button>
+                  <div className="text-xs font-semibold text-neutral-300 uppercase tracking-widest">
+                    Are you a brand?{' '}
+                    <Link href="/seller-onboarding" className="text-white underline hover:text-neutral-100 transition font-bold">
+                      Sign up to sell
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          <section className="bg-white py-12 px-6 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto space-y-12 text-left">
+              <h1 
+                className="text-4xl font-light text-gray-950 tracking-tight"
+                style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+              >
+                Welcome back, {user.firstName || 'kargil'}
+              </h1>
+
+              <div className="flex overflow-x-auto gap-12 pb-4 scrollbar-none items-center justify-start">
+                {loggedInCategories.map((cat) => (
+                  <button 
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
+                  >
+                    <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
+                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-6 border-t border-gray-50">
+                <h3 
+                  className="text-2xl font-light text-gray-950 mb-6"
+                  style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+                >
+                  Recently viewed
+                </h3>
+                
+                {products.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {products.slice(0, 4).map((product) => (
+                      <div key={product.id} className="group text-left cursor-pointer">
+                        <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                          <img 
+                            src={product.image_url} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                          />
+                        </Link>
+                        <div className="mt-2.5">
+                          <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No recently viewed items.</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
       <section className="max-w-7xl mx-auto py-16 px-6">
@@ -792,7 +903,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 items-start">
             <div className="md:col-span-2 space-y-6">
               <h3 
-                className="text-3xl font-light text-gray-950 leading-tight max-w-md"
+                className="text-3xl font-light text-gray-900 leading-tight max-w-md"
                 style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
               >
                 The best selection of brands for your store, all in one place
@@ -985,7 +1096,7 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
                           >
                             Back
                           </button>
