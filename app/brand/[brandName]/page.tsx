@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../context/AuthContext'; // Corrected: 3 levels up
-import { useCart } from '../../../context/CartContext'; // Corrected: 3 levels up
+import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import Link from 'next/link';
 
 export default function BrandPage() {
@@ -69,22 +69,26 @@ export default function BrandPage() {
             {products.map((product) => (
               <div 
                 key={product.id} 
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
               >
                 <div>
+                  {/* Image now links to the Product Page */}
                   {product.image_url && (
-                    <div className="relative w-full h-56 bg-gray-50">
+                    <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
                       <img 
                         src={product.image_url} 
                         alt={product.title} 
                         className="w-full h-full object-cover"
                       />
-                    </div>
+                    </Link>
                   )}
                   <div className="p-5 text-left">
                     {isUserLoggedIn ? (
                       <>
-                        <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
+                        {/* Title now links to the Product Page */}
+                        <Link href={`/product/${product.id}`} className="block text-xl font-bold text-gray-900 hover:underline hover:text-blue-600 transition">
+                          {product.title}
+                        </Link>
                         <p className="text-gray-600 text-sm mt-2 line-clamp-2">
                           {product.description}
                         </p>
