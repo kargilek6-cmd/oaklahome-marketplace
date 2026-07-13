@@ -777,19 +777,36 @@ export default function Home() {
                           />
                         </div>
                       )}
-                      <div className="p-5">
-                        <div className="flex items-baseline space-x-2">
-                          <span className="text-lg font-black text-gray-950">
-                            ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                          </span>
-                          <span className="text-xs text-gray-400 line-through">
-                            MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                      <div className="p-5 text-left">
+                        {/* PRICE PROTECTION: Check if buyer is logged in */}
+                        {isUserLoggedIn ? (
+                          <>
+                            <div className="flex items-baseline space-x-2">
+                              <span className="text-lg font-black text-gray-950">
+                                ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                              </span>
+                              <span className="text-xs text-gray-400 line-through">
+                                MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
 
-                        <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2">
-                          {product.title}
-                        </h3>
+                            <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2">
+                              {product.title}
+                            </h3>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-baseline space-x-2">
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                                Pricing Protected 🔒
+                              </span>
+                            </div>
+
+                            <h3 className="text-base font-semibold text-gray-400 mt-3 line-clamp-2 blur-[2.5px] select-none">
+                              {product.title}
+                            </h3>
+                          </>
+                        )}
 
                         <p className="text-gray-500 text-sm mt-1 line-clamp-2">
                           {product.description}
@@ -797,7 +814,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="p-5 pt-0">
+                    <div className="p-5 pt-0 text-left">
                       <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
                         <div>
                           {product.brand_name && (
@@ -813,15 +830,25 @@ export default function Home() {
                           </p>
                         </div>
                         
-                        <button
-                          onClick={() => {
-                            addToCart(product);
-                            alert(`Added "${product.title}" to cart!`);
-                          }}
-                          className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95"
-                        >
-                          + Add to Cart
-                        </button>
+                        {/* BUTTON SELECTION: Only show add to cart if logged in */}
+                        {isUserLoggedIn ? (
+                          <button
+                            onClick={() => {
+                              addToCart(product);
+                              alert(`Added "${product.title}" to cart!`);
+                            }}
+                            className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
+                          >
+                            + Add to Cart
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openAuthModal('signin')}
+                            className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 cursor-pointer"
+                          >
+                            Sign in to buy
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
