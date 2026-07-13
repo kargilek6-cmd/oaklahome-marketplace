@@ -64,6 +64,7 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
+  // Handle OTP Sending
   const handleSendOtp = () => {
     if (!authPhone || authPhone.length < 10) {
       alert('Please enter a valid 10-digit mobile number.');
@@ -76,6 +77,7 @@ export default function Home() {
     setAuthLoading(false);
   };
 
+  // Handle Authentication (Sign In & Sign Up to Buy)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -260,17 +262,19 @@ export default function Home() {
     { name: 'Wall art', img: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=150' }
   ];
 
-  const isUserLoggedIn = user !== null;
   const isBuyerLoggedIn = user && user.role === 'BUYER';
+  const isUserLoggedIn = user !== null;
 
   return (
     <main className="min-h-screen bg-white">
       
-      {/* MINIMAL HEADER */}
+      {/* ================= OPTIMIZED COMPACT RESPONSIVE HEADER ================= */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-2.5 md:py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0">
           
+          {/* Top Row on Mobile: Logo (Left) and Hamburger / Icons (Right) */}
           <div className="flex items-center justify-between w-full md:w-auto">
+            {/* 1. Mobile Hamburger Menu Button (Three Lines) */}
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="block md:hidden text-gray-700 hover:text-gray-950 p-2 cursor-pointer transition focus:outline-none"
@@ -280,11 +284,13 @@ export default function Home() {
               </svg>
             </button>
 
-            <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
+            {/* Logo */}
+            <Link href="/" className="font-serif text-base md:text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
             </Link>
 
-            <div className="flex items-center space-x-3.5">
+            {/* Mobile Right Icons (Search and Cart) (FIXED: hidden max-md:flex forces 100% invisible on desktop) */}
+            <div className="hidden max-md:flex items-center space-x-3.5">
               <button 
                 onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
                 className="text-gray-500 hover:text-gray-900 transition p-1"
@@ -308,6 +314,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Search bar (Visible on desktop, collapsible on mobile) */}
           <div className={`w-full md:flex-grow md:max-w-xl md:mx-8 relative ${
             isMobileSearchOpen ? 'block' : 'hidden md:block'
           }`}>
@@ -325,6 +332,7 @@ export default function Home() {
             />
           </div>
 
+          {/* Desktop Menu (Hidden on mobile) */}
           <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700">
             {user ? (
               <>
@@ -439,6 +447,18 @@ export default function Home() {
                   Sign up to buy
                 </button>
               </>
+            )}
+
+            {totalCartItems > 0 && (
+              <Link 
+                href="/cart" 
+                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
+              >
+                <span>🛒 Cart</span>
+                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
+                  {totalCartItems}
+                </span>
+              </Link>
             )}
           </div>
         </div>
@@ -588,7 +608,6 @@ export default function Home() {
                 >
                   Find your next bestseller
                 </h2>
-                {/* DYNAMIC PRICE PROTECTION TEXT */}
                 <p className="text-base md:text-lg text-neutral-200 tracking-wide font-light leading-relaxed">
                   Sign up to unlock wholesale pricing with over 100 curated brands.
                 </p>
@@ -615,7 +634,6 @@ export default function Home() {
           {/* ----------------- LOGGED IN BUYER HOMEPAGE (FAIRE DESIGN) ----------------- */}
           <section className="bg-white py-12 px-6 border-b border-gray-100">
             <div className="max-w-7xl mx-auto space-y-12 text-left">
-              
               <h1 
                 className="text-4xl font-light text-gray-950 tracking-tight"
                 style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
@@ -659,15 +677,7 @@ export default function Home() {
                         </Link>
                         <div className="mt-2.5">
                           <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                          
-                          {/* DYNAMIC PRICE PROTECTION FOR RECENTLY VIEWED (Hides price from guests) */}
-                          <p className="text-xs text-gray-400 font-semibold mt-1">
-                            {isBuyerLoggedIn ? (
-                              `₹${product.price?.toLocaleString('en-IN')}`
-                            ) : (
-                              <button onClick={() => openAuthModal('signin')} className="text-[10px] text-blue-600 hover:underline">Sign in for pricing</button>
-                            )}
-                          </p>
+                          <p className="text-xs text-gray-400 font-semibold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
                         </div>
                       </div>
                     ))}
@@ -848,29 +858,15 @@ export default function Home() {
                         </div>
                       )}
                       <div className="p-5">
-                        
-                        {/* ================= DYNAMIC PRICE PROTECTION (HIDES WHOLESALE FROM GUESTS) ================= */}
-                        {isBuyerLoggedIn ? (
-                          <div className="flex items-baseline space-x-2">
-                            <span className="text-lg font-black text-gray-950">
-                              ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                            </span>
-                            <span className="text-xs text-gray-400 line-through">
-                              MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-baseline">
-                            <button 
-                              onClick={() => openAuthModal('signin')}
-                              className="text-sm font-extrabold text-blue-600 hover:underline transition text-left"
-                            >
-                              Sign in to view wholesale pricing
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-baseline space-x-2">
+                          <span className="text-lg font-black text-gray-950">
+                            ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                          </span>
+                          <span className="text-xs text-gray-400 line-through">
+                            MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
 
-                        {/* PRODUCT TITLE */}
                         <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2">
                           {product.title}
                         </h3>
@@ -882,7 +878,6 @@ export default function Home() {
                     </div>
 
                     <div className="p-5 pt-0">
-                      {/* BRAND & MINIMUM ORDER */}
                       <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
                         <div>
                           {product.brand_name && (
@@ -893,37 +888,20 @@ export default function Home() {
                               {product.brand_name}
                             </Link>
                           )}
-                          
-                          {/* HIDES MINIMUM ORDER UNTIL SIGNED IN */}
                           <p className="text-xs text-gray-500 mt-1 font-medium">
-                            {isBuyerLoggedIn ? (
-                              `₹${product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min`
-                            ) : (
-                              <span className="text-gray-300">Minimum protected</span>
-                            )}
+                            ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
                           </p>
                         </div>
                         
-                        {/* ================= DYNAMIC CART BUTTON (LOCKS TO SIGN IN TO BUY FOR GUESTS) ================= */}
-                        {isBuyerLoggedIn ? (
-                          <button
-                            onClick={() => {
-                              addToCart(product);
-                              alert(`Added "${product.title}" to cart!`);
-                            }}
-                            className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95"
-                          >
-                            + Add to Cart
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openAuthModal('signin')}
-                            className="border border-gray-200 hover:border-gray-900 hover:bg-gray-50 text-gray-700 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150"
-                          >
-                            Sign in to buy
-                          </button>
-                        )}
-
+                        <button
+                          onClick={() => {
+                            addToCart(product);
+                            alert(`Added "${product.title}" to cart!`);
+                          }}
+                          className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95"
+                        >
+                          + Add to Cart
+                        </button>
                       </div>
                     </div>
                   </div>
