@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useCart } from './context/CartContext';
-import { useAuth } from './context/AuthContext'; // Import our auth hook
+import { useAuth } from './context/AuthContext';
 import Link from 'next/link';
 
 export default function Home() {
@@ -11,12 +11,12 @@ export default function Home() {
   const [brands, setBrands] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all'); // Track active category filter
+  const [selectedCategory, setSelectedCategory] = useState('all'); 
   
   const { cart, addToCart } = useCart();
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, mounted } = useAuth();
 
-  // AUTH MODAL STATES
+  // AUTH & NAVIGATION DROPDOWN STATES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'signin' | 'signup'>('signin');
   const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone'); 
@@ -25,30 +25,27 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // USER DROPDOWN & MOBILE SIDEBAR STATES
+  // DROPDOWNS
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Controls the 3-lines sidebar
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // Toggles mobile search input
+  const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
 
   // OTP MOCK STATES
   const [otpSent, setOtpSent] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
 
-  // Calculate the total number of items in the cart (with explicit types to satisfy TS)
   const totalCartItems = cart.reduce((total: number, item: any) => total + item.quantity, 0);
 
   useEffect(() => {
     async function fetchMarketplaceData() {
       try {
-        // 1. Fetch products from Supabase
         const { data: prodData, error: prodError } = await supabase
           .from('products')
           .select('*');
         if (prodError) throw prodError;
         setProducts(prodData || []);
 
-        // 2. Fetch onboarded brands from Supabase
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*');
@@ -89,7 +86,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via PHONE -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -123,7 +119,6 @@ export default function Home() {
           alert('Account verified successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via PHONE -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -153,7 +148,6 @@ export default function Home() {
         }
 
         if (modalType === 'signup') {
-          // ------- BUYER SIGN UP via EMAIL -------
           const { data: existingBuyer } = await supabase
             .from('buyers')
             .select('*')
@@ -186,7 +180,6 @@ export default function Home() {
           alert('Account created successfully! Welcome to Oaklahome.');
           setIsModalOpen(false);
         } else {
-          // ------- BUYER-ONLY SIGN IN via EMAIL -------
           const { data: buyerUser } = await supabase
             .from('buyers')
             .select('*')
@@ -252,7 +245,6 @@ export default function Home() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
-  // Visual Category Circles for Logged-In Buyer
   const loggedInCategories = [
     { name: 'Paintings', img: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150' },
     { name: 'Furniture', img: 'https://images.unsplash.com/photo-1581428982868-e410dd047a90?w=150' },
@@ -261,20 +253,54 @@ export default function Home() {
     { name: 'Wall art', img: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=150' }
   ];
 
-  const isUserLoggedIn = user !== null;
-  const isBuyerLoggedIn = user && user.role === 'BUYER';
+  const isUserLoggedIn = mounted && user !== null;
 
   return (
     <main className="min-h-screen bg-white">
       
-      {/* MINIMAL HEADER */}
+      {/* FAIRE-STYLE DESKTOP HEADER */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* Logo */}
-          <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
-            OAKLAHOME
-          </Link>
+          {/* Logo & All Categories Dropdown Group */}
+          <div className="flex items-center space-x-6">
+            <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
+              OAKLAHOME
+            </Link>
+
+            {/* Faire-Style Left-Aligned Category Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsCategoriesDropdownOpen(!isCategoriesDropdownOpen)}
+                className="flex items-center space-x-1.5 text-sm font-semibold text-gray-700 hover:text-gray-950 transition cursor-pointer"
+              >
+                <span>All categories</span>
+                <span className="text-[10px] text-gray-400">▼</span>
+              </button>
+
+              {isCategoriesDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsCategoriesDropdownOpen(false)} />
+                  <div className="absolute left-0 mt-2.5 w-56 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          setIsCategoriesDropdownOpen(false);
+                        }}
+                        className={`w-full block px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition ${
+                          selectedCategory.toLowerCase() === cat.toLowerCase() ? 'font-bold text-gray-950 bg-gray-50/50' : 'text-gray-600'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
           {/* Search bar */}
           <div className="flex-grow max-w-xl mx-8 relative">
@@ -292,15 +318,12 @@ export default function Home() {
             />
           </div>
 
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700">
-            {user ? (
+          {/* Navigation Controls */}
+          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+            {mounted && user ? (
               <>
                 {user.role === 'SELLER' ? (
                   <>
-                    <span className="text-gray-400 font-medium">
-                      Welcome, <strong className="text-gray-950">{user.brandName}</strong>
-                    </span>
                     <Link 
                       href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
                       className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 shadow"
@@ -310,16 +333,46 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    {/* Logged in as a Retail Buyer */}
-                    <span className="text-gray-400 font-medium">
-                      Retailer: <strong className="text-gray-950">{user.email ? user.email.split('@')[0] : user.phone}</strong>
-                    </span>
-                    <button 
-                      onClick={logout}
-                      className="text-red-500 hover:text-red-700 hover:underline transition"
-                    >
-                      Sign out
-                    </button>
+                    {/* FAIRE USER DROP DOWN */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition cursor-pointer"
+                        title="My Account"
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </button>
+
+                      {isUserDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
+                          <div className="absolute right-0 mt-3 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Retailer ID</p>
+                              <p className="text-xs font-black text-gray-950 truncate mt-0.5">
+                                {user.email ? user.email.split('@')[0] : user.phone}
+                              </p>
+                            </div>
+                            <Link href="/orders" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                              Orders
+                            </Link>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Invoices (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Settings (Locked)</span>
+                            <button 
+                              onClick={() => { logout(); setIsUserDropdownOpen(false); }}
+                              className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
+                            >
+                              Sign out
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </>
@@ -334,32 +387,32 @@ export default function Home() {
                 
                 <button 
                   onClick={() => openAuthModal('signin')}
-                  className="hover:text-gray-950 transition"
+                  className="hover:text-gray-950 transition cursor-pointer"
                 >
                   Sign in
                 </button>
 
                 <button 
                   onClick={() => openAuthModal('signup')}
-                  className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150"
+                  className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in"
                 >
                   Sign up to buy
                 </button>
               </>
             )}
 
-            {/* Floating Cart Icon */}
-            {totalCartItems > 0 && (
-              <Link 
-                href="/cart" 
-                className="bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition flex items-center space-x-2"
-              >
-                <span>🛒 Cart</span>
-                <span className="bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs font-black">
+            {/* Cart Icon */}
+            <Link 
+              href="/cart" 
+              className="bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition flex items-center justify-center relative cursor-pointer"
+            >
+              <span>🛒</span>
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] font-black shadow-md">
                   {totalCartItems}
                 </span>
-              </Link>
-            )}
+              )}
+            </Link>
           </div>
         </div>
       </header>
@@ -386,7 +439,7 @@ export default function Home() {
                   OAKLAHOME
                 </Link>
 
-                {user ? (
+                {mounted && user ? (
                   <div className="space-y-4">
                     <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Logged in</p>
                     <p className="font-extrabold text-white text-base truncate">
@@ -465,7 +518,7 @@ export default function Home() {
               </div>
             </div>
 
-            {user && (
+            {mounted && user && (
               <div className="border-t border-gray-100 p-6 bg-gray-50/50">
                 <button
                   onClick={() => {
@@ -501,7 +554,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
             <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
-              <div className="max-w-4xl text-white space-y-6">
+              <div className="max-w-4xl text-white space-y-6 text-left">
                 <h2 
                   className="text-5xl md:text-6xl font-light leading-none tracking-tight text-white"
                   style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
@@ -514,7 +567,7 @@ export default function Home() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4">
                   <button 
                     onClick={() => openAuthModal('signup')}
-                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg"
+                    className="bg-white hover:bg-neutral-100 text-gray-950 font-bold px-8 py-3.5 rounded text-xs uppercase tracking-widest transition duration-150 shadow-lg cursor-pointer"
                   >
                     Sign up to buy
                   </button>
@@ -532,10 +585,9 @@ export default function Home() {
       ) : (
         <>
           {/* ----------------- LOGGED IN HOMEPAGE (ADAPTS FOR BUYERS VS SELLERS) ----------------- */}
-          {isBuyerLoggedIn ? (
+          {user.role === 'BUYER' ? (
             <section className="bg-white py-12 px-6 border-b border-gray-100">
               <div className="max-w-7xl mx-auto space-y-12 text-left">
-                {/* "Welcome back, kargil" greeting */}
                 <h1 
                   className="text-4xl font-light text-gray-950 tracking-tight"
                   style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
@@ -559,7 +611,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* RECENTLY VIEWED */}
+                {/* RECENTLY VIEWED CONTAINER */}
                 <div className="pt-6 border-t border-gray-50">
                   <h3 
                     className="text-2xl font-light text-gray-950 mb-6"
@@ -571,18 +623,32 @@ export default function Home() {
                   {products.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       {products.slice(0, 4).map((product) => (
-                        <div key={product.id} className="group text-left cursor-pointer">
-                          <Link href={`/brand/${encodeURIComponent(product.brand_name)}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
-                            <img 
-                              src={product.image_url} 
-                              alt="" 
-                              className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
-                            />
-                          </Link>
-                          <div className="mt-2.5">
-                            <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                            <p className="text-xs text-gray-400 font-semibold mt-1 font-bold">₹{product.price?.toLocaleString('en-IN')}</p>
+                        <div key={product.id} className="group text-left flex flex-col justify-between">
+                          <div>
+                            {/* B2B Route to Product Detail Page PDP! */}
+                            <Link href={`/product/${product.id}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                              <img 
+                                src={product.image_url} 
+                                alt="" 
+                                className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                              />
+                            </Link>
+                            <div className="mt-2.5">
+                              <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                              <p className="text-xs text-gray-500 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                            </div>
                           </div>
+                          
+                          {/* Add to Cart button */}
+                          <button
+                            onClick={() => {
+                              addToCart(product);
+                              alert(`Added "${product.title}" to cart!`);
+                            }}
+                            className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                          >
+                            + Add to Cart
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -593,7 +659,6 @@ export default function Home() {
               </div>
             </section>
           ) : (
-            /* IF SELLER IS LOGGED IN & BROWSING HOMEPAGE (HIDES THE PUBLIC SIGNUP VIDEO HERO!) */
             <section className="bg-white py-10 px-6 border-b border-gray-100">
               <div className="max-w-7xl mx-auto text-left">
                 <h1 
@@ -646,8 +711,8 @@ export default function Home() {
             <div className="space-y-16">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {filteredBrands.map((brand) => (
-                  <div key={brand.id} className="group overflow-hidden">
-                    <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition">
+                  <div key={brand.id} className="group overflow-hidden text-left">
+                    <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
                       <img 
                         src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600'} 
                         alt={brand.brand_name} 
@@ -679,7 +744,7 @@ export default function Home() {
       {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
         <div className="max-w-7xl mx-auto space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start text-left">
             <div className="space-y-3">
               <h2 
                 className="text-3xl md:text-4xl font-light text-[#dfc28c]"
@@ -732,7 +797,7 @@ export default function Home() {
             </p>
             <button
               onClick={() => openAuthModal('signup')}
-              className="bg-white hover:bg-neutral-50 text-gray-950 font-bold px-6 py-3 rounded text-[10px] uppercase tracking-widest transition duration-150 shadow-md inline-block mt-4"
+              className="bg-white hover:bg-neutral-50 text-gray-950 font-bold px-6 py-3 rounded text-[10px] uppercase tracking-widest transition duration-150 shadow-md inline-block mt-4 cursor-pointer"
             >
               Sign up to buy
             </button>
@@ -758,7 +823,7 @@ export default function Home() {
           Explore wholesale products
         </h2>
 
-        <div className="mt-12">
+        <div className="mt-12 text-left">
           {searchedProducts.length > 0 ? (
             <div className="space-y-16">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -769,16 +834,15 @@ export default function Home() {
                   >
                     <div>
                       {product.image_url && (
-                        <div className="relative w-full h-56 bg-gray-50">
+                        <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
                           <img 
                             src={product.image_url} 
                             alt={product.title} 
                             className="w-full h-full object-cover"
                           />
-                        </div>
+                        </Link>
                       )}
-                      <div className="p-5 text-left">
-                        {/* PRICE PROTECTION: Check if buyer is logged in */}
+                      <div className="p-5">
                         {isUserLoggedIn ? (
                           <>
                             <div className="flex items-baseline space-x-2">
@@ -790,19 +854,18 @@ export default function Home() {
                               </span>
                             </div>
 
-                            <h3 className="text-base font-semibold text-gray-800 mt-2 line-clamp-2">
+                            <Link href={`/product/${product.id}`} className="block text-base font-semibold text-gray-800 mt-2 line-clamp-2 hover:underline">
                               {product.title}
-                            </h3>
+                            </Link>
                           </>
                         ) : (
                           <>
-                            <div className="flex items-baseline space-x-2">
+                            <div className="flex items-baseline mb-3">
                               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
                                 Pricing Protected 🔒
                               </span>
                             </div>
-
-                            <h3 className="text-base font-semibold text-gray-400 mt-3 line-clamp-2 blur-[2.5px] select-none">
+                            <h3 className="text-base font-semibold text-gray-400 line-clamp-2 blur-[2px] select-none">
                               {product.title}
                             </h3>
                           </>
@@ -814,7 +877,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="p-5 pt-0 text-left">
+                    <div className="p-5 pt-0">
                       <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
                         <div>
                           {product.brand_name && (
@@ -830,7 +893,6 @@ export default function Home() {
                           </p>
                         </div>
                         
-                        {/* BUTTON SELECTION: Only show add to cart if logged in */}
                         {isUserLoggedIn ? (
                           <button
                             onClick={() => {
@@ -864,8 +926,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 5: FOOTER */}
-      <footer className="bg-white border-t border-gray-100 py-16 px-6 mt-16">
+      {/* FOOTER */}
+      <footer className="bg-white border-t border-gray-100 py-16 px-6 mt-16 text-left">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 items-start">
             <div className="md:col-span-2 space-y-6">
@@ -878,7 +940,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => openAuthModal('signup')}
-                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm"
+                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm cursor-pointer"
                 >
                   Sign up to buy
                 </button>
@@ -920,42 +982,12 @@ export default function Home() {
                   <li><Link href="/" className="hover:text-gray-900 transition">Refer a brand</Link></li>
                 </ul>
               </div>
-
-              <div className="flex items-center space-x-6 pt-6 border-t border-gray-50 md:border-none">
-                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 1.9.24 2.502.542a4.413 4.413 0 011.583 1.503c.3.6.49 1.363.542 2.502.044.925.054 1.28.054 3.71s-.01 2.784-.054 3.71c-.052 1.139-.24 1.9-.542 2.502a4.413 4.413 0 01-1.503 1.583c-.6.3-1.363-.49-2.502.542-.925.044-1.28.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-1.9-.24-2.502-.542a4.413 4.413 0 01-1.583-1.503c-.3-.6-.49-1.363-.542-2.502C2.01 14.821 2 14.466 2 12s.01-2.784.054-3.71c.052-1.139.24-1.9.542-2.502a4.413 4.413 0 011.503-1.583c.6-.3 1.363-.49 2.502-.542.925-.044 1.28-.054 3.71-.054zM12 6.865a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 1.802a3.333 3.333 0 110 6.666 3.333 3.333 0 010-6.666zm5.338-3.205a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z" clipRule="evenodd" />
-                  </svg>
-                </Link>
-                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
-                  </svg>
-                </Link>
-                <Link href="/" className="text-gray-500 hover:text-gray-900 transition">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </Link>
-              </div>
             </div>
           </div>
 
           <div className="border-t border-gray-100 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
             <div>
               <span>©2026 Oaklahome Wholesale, Inc.</span>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">Terms of Service</Link>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">Privacy Policy</Link>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">Cookie Policy</Link>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">IP Policy</Link>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">Accessibility Policy</Link>
-              <span className="mx-2">•</span>
-              <Link href="/" className="hover:text-gray-600 transition">Sitemap</Link>
             </div>
             <p className="font-medium text-gray-500 tracking-wide">
               *Sign up to get 50% off your order, up to ₹10,000.
@@ -968,8 +1000,6 @@ export default function Home() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            
-            {/* Close button (X) */}
             <button 
               onClick={() => {
                 setIsModalOpen(false);
@@ -1042,7 +1072,7 @@ export default function Home() {
                           type="button"
                           onClick={handleSendOtp}
                           disabled={authLoading}
-                          className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow mt-5"
+                          className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow mt-5 cursor-pointer"
                         >
                           {authLoading ? 'Sending...' : 'Send OTP'}
                         </button>
@@ -1053,7 +1083,7 @@ export default function Home() {
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter 6-Digit OTP *</label>
                           <input
                             type="text"
-                            placeholder="Enter the code sent to your phone"
+                            placeholder="Enter code"
                             value={enteredOtp}
                             onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 tracking-[0.25em] text-center font-bold text-lg"
@@ -1064,14 +1094,14 @@ export default function Home() {
                           <button
                             type="button"
                             onClick={() => { setOtpSent(false); setEnteredOtp(''); }}
-                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition"
+                            className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-4 rounded text-sm transition cursor-pointer"
                           >
                             Back
                           </button>
                           <button
                             type="submit"
                             disabled={authLoading}
-                            className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                            className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow cursor-pointer"
                           >
                             {authLoading ? 'Verifying...' : 'Verify & Sign In'}
                           </button>
@@ -1126,7 +1156,7 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={authLoading}
-                      className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                      className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow cursor-pointer"
                     >
                       {authLoading ? 'Processing...' : 'Next'}
                     </button>
@@ -1140,7 +1170,7 @@ export default function Home() {
                     New to Oaklahome?{' '}
                     <button 
                       onClick={() => setModalType('signup')}
-                      className="text-blue-600 hover:underline cursor-pointer"
+                      className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign up to buy
                     </button>
@@ -1150,7 +1180,7 @@ export default function Home() {
                     Already have an account?{' '}
                     <button 
                       onClick={() => setModalType('signin')}
-                      className="text-blue-600 hover:underline cursor-pointer"
+                      className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign in
                     </button>
