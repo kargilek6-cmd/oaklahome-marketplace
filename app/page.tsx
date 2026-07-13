@@ -29,6 +29,7 @@ export default function Home() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // Mobile search slide-down
 
   // OTP MOCK STATES
   const [otpSent, setOtpSent] = useState(false);
@@ -258,17 +259,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* FAIRE-STYLE DESKTOP HEADER */}
-      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-6 py-4">
+      {/* RESPONSIVE HEADER LAYOUT (DO NOT ALTER DESKTOP VIEW) */}
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* Logo & All Categories Dropdown Group */}
-          <div className="flex items-center space-x-6">
+          {/* ================= DESKTOP LEFT SECTION (Hidden on Mobile) ================= */}
+          <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
             </Link>
 
-            {/* Faire-Style Left-Aligned Category Dropdown */}
+            {/* Left-Aligned Category Dropdown */}
             <div className="relative">
               <button 
                 onClick={() => setIsCategoriesDropdownOpen(!isCategoriesDropdownOpen)}
@@ -289,7 +290,7 @@ export default function Home() {
                           setSelectedCategory(cat);
                           setIsCategoriesDropdownOpen(false);
                         }}
-                        className={`w-full block px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition ${
+                        className={`w-full block px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition cursor-pointer ${
                           selectedCategory.toLowerCase() === cat.toLowerCase() ? 'font-bold text-gray-950 bg-gray-50/50' : 'text-gray-600'
                         }`}
                       >
@@ -302,10 +303,27 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Search bar */}
-          <div className="flex-grow max-w-xl mx-8 relative">
+          {/* ================= MOBILE LEFT SECTION (Only visible on Mobile) ================= */}
+          <div className="flex md:hidden items-center space-x-3.5">
+            {/* 3-Lines Hamburger Drawer Button */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="text-gray-800 hover:text-gray-950 focus:outline-none p-1 cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <Link href="/" className="font-serif text-base tracking-[0.2em] font-black text-gray-900">
+              OAKLAHOME
+            </Link>
+          </div>
+
+          {/* ================= DESKTOP CENTER SEARCH BAR (Hidden on Mobile) ================= */}
+          <div className="hidden md:block flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </span>
@@ -314,94 +332,71 @@ export default function Home() {
               placeholder="Search wholesale products or brands"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 focus:ring-0 bg-gray-50/50 transition duration-150"
+              className="w-full border border-gray-200 hover:border-gray-300 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/50 transition duration-150"
             />
           </div>
 
-          {/* Navigation Controls */}
-          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+          {/* ================= DESKTOP RIGHT CONTROLS (Hidden on Mobile) ================= */}
+          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
                 {user.role === 'SELLER' ? (
-                  <>
-                    <Link 
-                      href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
-                      className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 shadow"
-                    >
-                      Go to Portal 📦
-                    </Link>
-                  </>
+                  <Link 
+                    href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
+                    className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 shadow"
+                  >
+                    Go to Portal 📦
+                  </Link>
                 ) : (
-                  <>
-                    {/* FAIRE USER DROP DOWN */}
-                    <div className="relative">
-                      <button 
-                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition cursor-pointer"
-                        title="My Account"
-                      >
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </button>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                      className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition cursor-pointer"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </button>
 
-                      {isUserDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-                          <div className="absolute right-0 mt-3 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
-                            <div className="px-4 py-2 border-b border-gray-100 mb-1">
-                              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Retailer ID</p>
-                              <p className="text-xs font-black text-gray-950 truncate mt-0.5">
-                                {user.email ? user.email.split('@')[0] : user.phone}
-                              </p>
-                            </div>
-                            <Link href="/orders" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
-                              Orders
-                            </Link>
-                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Invoices (Locked)</span>
-                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
-                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
-                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
-                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Settings (Locked)</span>
-                            <button 
-                              onClick={() => { logout(); setIsUserDropdownOpen(false); }}
-                              className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
-                            >
-                              Sign out
-                            </button>
+                    {isUserDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
+                        <div className="absolute right-0 mt-3 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                          <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Retailer ID</p>
+                            <p className="text-xs font-black text-gray-950 truncate mt-0.5">
+                              {user.email ? user.email.split('@')[0] : user.phone}
+                            </p>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  </>
+                          <Link href="/orders" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                            Orders
+                          </Link>
+                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Invoices (Locked)</span>
+                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
+                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
+                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
+                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Settings (Locked)</span>
+                          <button 
+                            onClick={() => { logout(); setIsUserDropdownOpen(false); }}
+                            className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
+                          >
+                            Sign out
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </>
             ) : (
               <>
-                <Link 
-                  href="/seller-onboarding" 
-                  className="hover:text-gray-950 transition"
-                >
-                  Sign up to sell
-                </Link>
-                
-                <button 
-                  onClick={() => openAuthModal('signin')}
-                  className="hover:text-gray-950 transition cursor-pointer"
-                >
-                  Sign in
-                </button>
-
-                <button 
-                  onClick={() => openAuthModal('signup')}
-                  className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in"
-                >
-                  Sign up to buy
-                </button>
+                <Link href="/seller-onboarding" className="hover:text-gray-950 transition">Sign up to sell</Link>
+                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer">Sign in</button>
+                <button onClick={() => openAuthModal('signup')} className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in">Sign up to buy</button>
               </>
             )}
 
-            {/* Cart Icon */}
+            {/* Desktop Cart */}
             <Link 
               href="/cart" 
               className="bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition flex items-center justify-center relative cursor-pointer"
@@ -414,10 +409,55 @@ export default function Home() {
               )}
             </Link>
           </div>
+
+          {/* ================= MOBILE RIGHT SECTION (Only visible on Mobile) ================= */}
+          <div className="flex md:hidden items-center space-x-4">
+            {/* Search Icon button */}
+            <button 
+              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+              className="text-gray-700 hover:text-gray-950 p-1 cursor-pointer"
+            >
+              <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
+            {/* Mobile Cart Icon */}
+            <Link 
+              href="/cart" 
+              className="bg-gray-50 text-gray-700 border border-gray-100 p-2 rounded-full transition flex items-center justify-center relative cursor-pointer"
+            >
+              <span className="text-sm">🛒</span>
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-4.5 w-4.5 flex items-center justify-center text-[9px] font-black shadow-md animate-in zoom-in">
+                  {totalCartItems}
+                </span>
+              )}
+            </Link>
+          </div>
+
         </div>
+
+        {/* ================= MOBILE COLLAPSIBLE SEARCH BAR INPUT (Toggled by mobile search icon) ================= */}
+        {isMobileSearchOpen && (
+          <div className="mt-3 relative md:hidden animate-in slide-in-from-top-2 duration-150">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search products or brands..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-200 rounded-full py-2 pl-11 pr-4 text-sm text-gray-900 focus:outline-none bg-gray-50/50"
+            />
+          </div>
+        )}
       </header>
 
-      {/* MOBILE DRAWER */}
+      {/* FAIRE STYLE MOBILE DRAWER (MATCHES SCREENSHOT 4 EXACTLY) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
           <div 
@@ -425,22 +465,24 @@ export default function Home() {
             className="fixed inset-0 bg-black/50 transition-opacity" 
           />
 
-          <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-200">
+          <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-250 shadow-2xl">
+            {/* Close button (X) */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-2 focus:outline-none"
+              className="absolute top-4 right-4 text-white hover:text-neutral-200 text-xl font-bold p-2 focus:outline-none z-50 cursor-pointer"
             >
               ✕
             </button>
 
             <div className="flex-grow overflow-y-auto">
-              <div className="bg-[#1a1a1a] p-6 text-white space-y-4 pt-10">
-                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-400 block mb-6">
+              {/* TOP BLOCK (Dark Grey / Black Menu) - Matches Screenshot 4 */}
+              <div className="bg-[#1a1a1a] text-white p-6 pt-12 space-y-4">
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-300 block mb-6">
                   OAKLAHOME
                 </Link>
 
                 {mounted && user ? (
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-left">
                     <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Logged in</p>
                     <p className="font-extrabold text-white text-base truncate">
                       {user.role === 'SELLER' ? user.brandName : `Retailer: ${user.email ? user.email.split('@')[0] : user.phone}`}
@@ -456,27 +498,27 @@ export default function Home() {
                       </Link>
                     ) : (
                       <Link
-                        href="/cart"
+                        href="/orders"
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
                       >
-                        <span>View Cart 🛒</span>
+                        <span>My Orders 📋</span>
                         <span>→</span>
                       </Link>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-3 font-bold text-sm">
+                  <div className="space-y-4 font-bold text-sm text-left">
                     <button 
                       onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signup'); }}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
+                      className="flex justify-between items-center text-white hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left cursor-pointer"
                     >
                       <span>Sign up to buy</span>
                       <span className="text-neutral-500">→</span>
                     </button>
                     <button 
                       onClick={() => { setIsMobileMenuOpen(false); openAuthModal('signin'); }}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left"
+                      className="flex justify-between items-center text-white hover:text-neutral-200 transition py-2 border-b border-neutral-800 w-full text-left cursor-pointer"
                     >
                       <span>Sign in</span>
                       <span className="text-neutral-500">→</span>
@@ -484,16 +526,31 @@ export default function Home() {
                     <Link 
                       href="/seller-onboarding"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex justify-between items-center hover:text-neutral-200 transition py-2 w-full"
+                      className="flex justify-between items-center text-white hover:text-neutral-200 transition py-2 w-full text-left"
                     >
                       <span>Sign up to sell</span>
-                      <span className="text-neutral-500">→</span>
+                      <span className="text-white">→</span>
                     </Link>
                   </div>
                 )}
               </div>
 
-              <div className="p-6">
+              {/* MIDDLE BLOCK (White background): Trending Collections */}
+              <div className="p-6 text-left border-b border-gray-100 bg-white">
+                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
+                  Trending Collections
+                </h3>
+                <ul className="space-y-3.5 text-sm font-semibold text-gray-600">
+                  <li><Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gray-900 transition block">All European brands</Link></li>
+                  <li><Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gray-900 transition block">Novelty Gifts</Link></li>
+                  <li><Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gray-900 transition block">Based in the U.K.</Link></li>
+                  <li><Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gray-900 transition block">For the Eco Conscious</Link></li>
+                  <li><Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gray-900 transition block">Healthy eats & drinks</Link></li>
+                </ul>
+              </div>
+
+              {/* BOTTOM BLOCK (White background): Categories for you */}
+              <div className="p-6 text-left bg-white">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Categories for you
                 </h3>
@@ -505,7 +562,7 @@ export default function Home() {
                           setSelectedCategory(catName);
                           setIsMobileMenuOpen(false); 
                         }}
-                        className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition ${
+                        className={`w-full text-left flex justify-between items-center hover:text-gray-900 transition cursor-pointer ${
                           selectedCategory.toLowerCase() === catName.toLowerCase() ? 'text-gray-950 font-bold' : ''
                         }`}
                       >
@@ -519,13 +576,13 @@ export default function Home() {
             </div>
 
             {mounted && user && (
-              <div className="border-t border-gray-100 p-6 bg-gray-50/50">
+              <div className="border-t border-gray-100 p-6 bg-gray-50/50 text-left">
                 <button
                   onClick={() => {
                     logout();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full flex items-center space-x-3 text-sm font-bold text-red-600 hover:bg-red-50 p-2.5 rounded-lg transition text-left"
+                  className="w-full flex items-center space-x-3 text-sm font-bold text-red-600 hover:bg-red-50 p-2.5 rounded-lg transition text-left cursor-pointer"
                 >
                   <span>🚪</span>
                   <span>Sign out</span>
@@ -623,7 +680,7 @@ export default function Home() {
                   {products.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       {products.slice(0, 4).map((product) => (
-                        <div key={product.id} className="group text-left flex flex-col justify-between">
+                        <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
                           <div>
                             {/* B2B Route to Product Detail Page PDP! */}
                             <Link href={`/product/${product.id}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
@@ -830,7 +887,7 @@ export default function Home() {
                 {searchedProducts.map((product) => (
                   <div 
                     key={product.id} 
-                    className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between"
+                    className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
                   >
                     <div>
                       {product.image_url && (
