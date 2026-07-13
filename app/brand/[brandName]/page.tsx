@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../../context/AuthContext'; // Corrected: 3 levels up
+import { useCart } from '../../../context/CartContext'; // Corrected: 3 levels up
 import Link from 'next/link';
 
 export default function BrandPage() {
