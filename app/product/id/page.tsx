@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import Link from 'next/link';
 
 export default function ProductDetailPage() {
