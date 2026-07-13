@@ -48,9 +48,10 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
 
   // Sidebar links
   const menuItems = [
-    { name: 'Products Catalog', href: `/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📦' },
-    { name: 'Add Product', href: `/seller/add-product/new?brand=${encodeURIComponent(user.brandName || '')}`, icon: '➕' },
-  ];
+  { name: 'Products Catalog', href: `/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📦' },
+  { name: 'Add Product', href: `/seller/add-product/new?brand=${encodeURIComponent(user.brandName || '')}`, icon: '➕' },
+  { name: 'Incoming Orders', href: `/seller/orders?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📋' },
+];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
