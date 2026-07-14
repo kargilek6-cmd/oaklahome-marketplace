@@ -8,18 +8,15 @@ import Link from 'next/link';
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, mounted } = useAuth();
   const router = useRouter();
-  const pathname = usePathname() || ''; // Fallback to empty string if null during initial SSR
+  const pathname = usePathname() || '';
 
-  // Skip authentication checks on onboarding and login pages
   const isOnboarding = pathname.includes('/seller-onboarding');
   const isLogin = pathname.includes('/seller-login');
 
-  // STRICT ROLE CHECK: Only users with the "SELLER" role can access the portal dashboard
   const isSeller = user && user.role === 'SELLER';
 
   useEffect(() => {
     if (mounted && !isSeller && !isOnboarding && !isLogin) {
-      // CORRECTED: Redirects unauthenticated portal attempts to the Brand Login page (/seller-login)!
       router.push('/seller-login');
     }
   }, [user, isSeller, mounted, isOnboarding, isLogin, router]);
@@ -32,12 +29,10 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // If on onboarding or login pages, render cleanly without the sidebar (ignores buyer session conflicts)
   if (isOnboarding || isLogin) {
     return <>{children}</>;
   }
 
-  // If not logged in as a Seller, show redirecting state
   if (!isSeller) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
@@ -46,18 +41,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // Sidebar links
+  // Sidebar links (Includes your brand-new View Storefront button!)
   const menuItems = [
     { name: 'Products Catalog', href: `/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📦' },
     { name: 'Add Product', href: `/seller/add-product/new?brand=${encodeURIComponent(user.brandName || '')}`, icon: '➕' },
-    { name: 'Incoming Orders', href: `/seller/orders?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📋' }
+    { name: 'Incoming Orders', href: `/seller/orders?brand=${encodeURIComponent(user.brandName || '')}`, icon: '📋' },
+    { name: 'View Storefront', href: `/brand/${encodeURIComponent(user.brandName || '')}`, icon: '👁️' }
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       
       {/* FIXED LEFT SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 p-6">
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 p-6 text-left">
         <div className="space-y-8">
           {/* Logo */}
           <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-950 block hover:opacity-85 transition">
@@ -98,7 +94,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
             logout();
             router.push('/');
           }}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50 transition duration-150 text-left"
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50 transition duration-150 text-left cursor-pointer"
         >
           <span className="text-base">🚪</span>
           <span>Logout</span>

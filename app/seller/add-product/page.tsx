@@ -20,8 +20,6 @@ export default function AddProductPage() {
 
 function AddProductForm() {
   const searchParams = useSearchParams();
-  
-  // Extract the brand name from the URL query parameter (e.g. ?brand=EcoWear)
   const urlBrandName = searchParams.get('brand') || '';
 
   // Products list states
@@ -31,7 +29,6 @@ function AddProductForm() {
   const [brandName, setBrandName] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  // Fetch only this brand's products
   const fetchBrandProducts = async (bName: string) => {
     setListLoading(true);
     try {
@@ -59,7 +56,6 @@ function AddProductForm() {
     }
   }, [urlBrandName]);
 
-  // Handle toggling status directly in the list
   const handleToggleStatus = async (productId: number, currentStatus: string) => {
     const nextStatus = currentStatus === 'published' ? 'draft' : 'published';
     try {
@@ -70,7 +66,6 @@ function AddProductForm() {
 
       if (error) throw error;
       
-      // Update local state instantly
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, status: nextStatus } : p))
       );
@@ -80,9 +75,8 @@ function AddProductForm() {
     }
   };
 
-  // Dynamic filter for the tab system
   const filteredProducts = products.filter((product) => {
-    const prodStatus = product.status || 'published'; // Fallback for older products with null status
+    const prodStatus = product.status || 'published'; 
     if (activeTab === 'all') return true;
     return prodStatus.toLowerCase() === activeTab.toLowerCase();
   });
@@ -97,24 +91,28 @@ function AddProductForm() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6">
-      {/* FULL-WIDTH PRODUCTS CATALOG CONTAINER */}
       <div className="max-w-7xl mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         
-        {/* HEADER WITH BLACK "ADD PRODUCTS" DROPDOWN BUTTON */}
-        <header className="mb-8 flex justify-between items-center border-b border-gray-100 pb-6">
+        {/* HEADER WITH VIEWS LINK & BLACK ADD PRODUCTS BUTTON */}
+        <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-6 gap-4 text-left">
           <div>
             <h2 className="text-3xl font-black text-gray-950 tracking-tight">Products</h2>
             <p className="text-sm text-gray-500 mt-1">Manage your wholesale catalog for {brandName || 'your brand'}.</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/" className="text-sm font-bold text-gray-500 hover:text-gray-800 mr-2 hover:underline">
+          <div className="flex items-center space-x-3.5 w-full sm:w-auto">
+            <Link 
+              href={`/brand/${encodeURIComponent(brandName)}`}
+              className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-4 rounded transition duration-150 text-center"
+            >
+              👁️ View Storefront
+            </Link>
+            <Link href="/" className="text-sm font-bold text-gray-500 hover:text-gray-800 hover:underline text-center">
               Go to Market
             </Link>
             
-            {/* BLACK FAIRE-STYLE ADD PRODUCTS BUTTON */}
             <Link 
               href={`/seller/add-product/new?brand=${encodeURIComponent(brandName)}`}
-              className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-sm py-3 px-5 rounded transition duration-150 flex items-center space-x-2"
+              className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-3 px-4 rounded transition duration-150 flex items-center space-x-2 text-center"
             >
               <span>+ Add products</span>
             </Link>
@@ -133,7 +131,7 @@ function AddProductForm() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 pr-6 border-b-2 transition duration-150 capitalize ${
+                className={`pb-3 pr-6 border-b-2 transition duration-150 capitalize cursor-pointer ${
                   activeTab === tab 
                     ? 'border-gray-950 text-gray-950 font-bold' 
                     : 'border-transparent hover:text-gray-700'
@@ -151,7 +149,7 @@ function AddProductForm() {
             <p className="text-gray-400 font-medium">Loading catalog...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto text-left">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -168,7 +166,6 @@ function AddProductForm() {
                     <td className="py-4 pl-2">
                       <input type="checkbox" className="rounded border-gray-300 text-gray-900 focus:ring-gray-950 h-4 w-4" />
                     </td>
-                    {/* Title & Image */}
                     <td className="py-4 flex items-center space-x-4">
                       {product.image_url ? (
                         <img src={product.image_url} alt="" className="w-12 h-12 object-cover rounded border border-gray-100" />
@@ -178,17 +175,14 @@ function AddProductForm() {
                       <span className="font-bold text-gray-800 text-base">{product.title}</span>
                     </td>
 
-                    {/* Wholesale Price */}
                     <td className="py-4 text-sm font-semibold text-gray-900">
                       ₹{product.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
 
-                    {/* Min. Order Amount */}
                     <td className="py-4 text-sm text-gray-500 font-medium">
                       ₹{product.min_order_amount?.toLocaleString('en-IN')} min
                     </td>
 
-                    {/* Clickable Status Badge */}
                     <td className="py-4 text-center">
                       <button
                         onClick={() => handleToggleStatus(product.id, product.status || 'published')}
@@ -207,13 +201,13 @@ function AddProductForm() {
             </table>
           </div>
         ) : (
-          <div className="py-20 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-8">
+          <div className="py-20 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-8 max-w-md mx-auto">
             <span className="text-4xl">📦</span>
             <p className="text-gray-500 font-bold mt-4 text-lg">No products found in this tab.</p>
             <p className="text-gray-400 text-sm mt-1 mb-6">Click the "+ Add products" button at the top right to list your first item.</p>
             <Link 
               href={`/seller/add-product/new?brand=${encodeURIComponent(brandName)}`}
-              className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-sm py-3 px-5 rounded transition duration-150"
+              className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-sm py-3 px-5 rounded transition duration-150 cursor-pointer inline-block"
             >
               + Add products
             </Link>

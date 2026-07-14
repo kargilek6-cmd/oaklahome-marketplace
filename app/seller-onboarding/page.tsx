@@ -43,16 +43,25 @@ export default function OnboardingPage() {
     setMounted(true);
   }, []);
 
-  // PROFILE PHOTO UPLOADER (Uploads to 'product-images' bucket)
+  // PROFILE PHOTO UPLOADER (Uploads to 'product-images' bucket, restricted to 1MB & safe characters)
   const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Enforce 1MB file size limits
+    if (file.size > 1 * 1024 * 1024) {
+      alert("Your profile logo is too large! Please upload an image under 1MB to save storage and keep page loads fast.");
+      return;
+    }
 
     setUploadingProfile(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `profile-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+      
+      // Convert brandName like "Oak & Home" to a safe file path "oak-home" (Removes special characters like &)
+      const safeFolder = brandName ? brandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : 'unregistered';
+      const filePath = `${safeFolder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
@@ -73,16 +82,25 @@ export default function OnboardingPage() {
     }
   };
 
-  // COVER PHOTO UPLOADER (Uploads to 'product-images' bucket)
+  // COVER PHOTO UPLOADER (Uploads to 'product-images' bucket, restricted to 2MB & safe characters)
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Enforce 2MB file size limits
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Your cover banner photo is too large! Please upload an image under 2MB.");
+      return;
+    }
 
     setUploadingCover(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `cover-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+      
+      // Convert brandName like "Oak & Home" to a safe file path "oak-home" (Removes special characters like &)
+      const safeFolder = brandName ? brandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : 'unregistered';
+      const filePath = `${safeFolder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
@@ -162,7 +180,7 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-white text-gray-900 font-sans">
       
       {/* GLOBAL ONBOARDING HEADER */}
-      <header className="border-b border-gray-100 py-5 px-6 flex justify-between items-center bg-white sticky top-0 z-50">
+      <header className="border-b border-gray-100 py-5 px-6 flex justify-between items-center bg-white sticky top-0 z-50 animate-in fade-in">
         <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-950">
           OAKLAHOME
         </Link>
@@ -440,7 +458,7 @@ export default function OnboardingPage() {
 
         {/* ================= STEP 6: DYNAMIC SPLIT-SCREEN CUSTOMIZER ================= */}
         {step === 6 && (
-          <div className="max-w-6xl w-full flex flex-col lg:flex-row gap-12 items-start text-left">
+          <div className="max-w-6xl w-full flex flex-col lg:flex-row gap-12 items-start text-left animate-in fade-in duration-200">
             
             {/* LEFT SIDE: LIVE-UPDATING STOREFRONT PREVIEW CARD */}
             <div className="w-full lg:w-1/2 sticky top-24 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md">
@@ -470,11 +488,11 @@ export default function OnboardingPage() {
                   <h2 className="text-2xl font-black text-gray-950 tracking-tight">{brandName || 'Your Brand'}</h2>
                   <p className="text-sm text-gray-400 font-semibold mt-1">India</p>
 
-                  {/* ACTIVE PREVIEW TABS: Clicking switches active mock view */}
+                  {/* ACTIVE PREVIEW TABS */}
                   <div className="flex space-x-6 border-b border-gray-100 mt-6 text-sm font-bold text-gray-400">
                     <button 
                       onClick={() => setPreviewTab('products')}
-                      className={`pb-3 border-b-2 transition ${
+                      className={`pb-3 border-b-2 transition cursor-pointer ${
                         previewTab === 'products' ? 'border-gray-900 text-gray-900' : 'border-transparent hover:text-gray-600'
                       }`}
                     >
@@ -482,7 +500,7 @@ export default function OnboardingPage() {
                     </button>
                     <button 
                       onClick={() => setPreviewTab('about')}
-                      className={`pb-3 border-b-2 transition ${
+                      className={`pb-3 border-b-2 transition cursor-pointer ${
                         previewTab === 'about' ? 'border-gray-900 text-gray-900' : 'border-transparent hover:text-gray-600'
                       }`}
                     >
@@ -536,8 +554,8 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* RIGHT SIDE: CUSTOMIZER INPUT FORMS (WITH FILE UPLOADERS) */}
-            <div className="w-full lg:w-1/2 space-y-6">
+            {/* RIGHT SIDE: CUSTOMIZER INPUT FORMS (WITH PHOTO UPLOADERS) */}
+            <div className="w-full lg:w-1/2 space-y-6 animate-in slide-in-from-right-3 duration-250">
               <div>
                 <h1 className="text-3xl font-serif font-semibold text-gray-950 tracking-tight">Build your shop page</h1>
                 <p className="text-gray-500 text-sm mt-1">Complete your store's visual identity so buyers can learn about you.</p>
@@ -567,7 +585,7 @@ export default function OnboardingPage() {
                         Choose File
                         <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
                       </label>
-                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo</span>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo (Max 1MB)</span>
                     </div>
                   )}
                 </div>
@@ -594,7 +612,7 @@ export default function OnboardingPage() {
                         Choose File
                         <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                       </label>
-                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner (Max 2MB)</span>
                     </div>
                   )}
                 </div>
@@ -628,7 +646,7 @@ export default function OnboardingPage() {
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Year Established (optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g., 2026"
+                    placeholder="e.g., 2023"
                     value={establishedYear}
                     onChange={(e) => setEstablishedYear(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
