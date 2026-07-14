@@ -41,7 +41,7 @@ function EditProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES (With Pointer Capture!)
+  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Edge Boundaries!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
@@ -135,7 +135,7 @@ function EditProductForm() {
     e.target.value = '';
   };
 
-  // POINTER CAPTURE PANNING HANDLERS (Locks dragging and blocks browser selection)
+  // POINTER CAPTURE PANNING HANDLERS
   const handlePanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId); // Captures pointer
@@ -143,10 +143,30 @@ function EditProductForm() {
     setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
   };
 
+  // BOUNDARY CONTROL DRAGGING (Strictly caps pan offsets to prevent exposing white space)
   const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
-    setPanX(e.clientX - dragStart.x);
-    setPanY(e.clientY - dragStart.y);
+    
+    const imgElement = e.currentTarget.querySelector('img');
+    if (!imgElement) return;
+
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const imgRect = imgElement.getBoundingClientRect();
+
+    const extraX = imgRect.width - containerRect.width;
+    const extraY = imgRect.height - containerRect.height;
+
+    const maxPanX = Math.max(0, extraX / 2);
+    const maxPanY = Math.max(0, extraY / 2);
+
+    const rawPanX = e.clientX - dragStart.x;
+    const rawPanY = e.clientY - dragStart.y;
+
+    const constrainedPanX = Math.max(-maxPanX, Math.min(maxPanX, rawPanX));
+    const constrainedPanY = Math.max(-maxPanY, Math.min(maxPanY, rawPanY));
+
+    setPanX(constrainedPanX);
+    setPanY(constrainedPanY);
   };
 
   const handlePanPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -512,10 +532,10 @@ function EditProductForm() {
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE!) ================= */}
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE & EDGE BOUNDARIES!) ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
-          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center">
+          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center text-left">
             <button 
               onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
@@ -541,10 +561,12 @@ function EditProductForm() {
                 alt="" 
                 className="absolute pointer-events-none max-w-none origin-center" 
                 style={{
-                  width: '100%',
-                  height: '100%',
+                  minWidth: '100%',
+                  minHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'cover',
-                  transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
                 }}
               />
               <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
@@ -558,7 +580,7 @@ function EditProductForm() {
             </div>
 
             {/* Zoom Slider */}
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 space-y-2 text-left">
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
                 <span>Zoom Scale</span>
                 <span>{zoom.toFixed(1)}x</span>

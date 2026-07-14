@@ -41,7 +41,7 @@ function NewProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES (With Pointer Capture!)
+  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Boundary Limits!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
@@ -130,10 +130,33 @@ function NewProductForm() {
     setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
   };
 
+  // BOUNDARY CONTROL DRAGGING (Strictly caps pan offsets to prevent exposing white space)
   const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
-    setPanX(e.clientX - dragStart.x);
-    setPanY(e.clientY - dragStart.y);
+    
+    const imgElement = e.currentTarget.querySelector('img');
+    if (!imgElement) return;
+
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const imgRect = imgElement.getBoundingClientRect();
+
+    // Calculate how much wider/taller the scaled image is compared to the 320x320 viewport container
+    const extraX = imgRect.width - containerRect.width;
+    const extraY = imgRect.height - containerRect.height;
+
+    // Maximum allowed offset from the center
+    const maxPanX = Math.max(0, extraX / 2);
+    const maxPanY = Math.max(0, extraY / 2);
+
+    const rawPanX = e.clientX - dragStart.x;
+    const rawPanY = e.clientY - dragStart.y;
+
+    // Hard-stop the image edges so they never cross inside the crop frame
+    const constrainedPanX = Math.max(-maxPanX, Math.min(maxPanX, rawPanX));
+    const constrainedPanY = Math.max(-maxPanY, Math.min(maxPanY, rawPanY));
+
+    setPanX(constrainedPanX);
+    setPanY(constrainedPanY);
   };
 
   const handlePanPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -215,6 +238,7 @@ function NewProductForm() {
     }
   };
 
+  // Remove photo from gallery list
   const handleRemovePhoto = (indexToRemove: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
@@ -433,7 +457,7 @@ function NewProductForm() {
                 </div>
               ))}
 
-              {/* Empty state slots (Displays up to 8 total items) */}
+              {/* Empty state slots */}
               {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
                 <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
                   <span className="text-lg">🖼️</span>
@@ -497,10 +521,10 @@ function NewProductForm() {
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE!) ================= */}
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE & EDGE BOUNDARIES!) ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
-          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center">
+          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center text-left">
             <button 
               onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
@@ -513,7 +537,7 @@ function NewProductForm() {
             </h3>
             <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
 
-            {/* Interactive Crop Viewport Frame (Pointer Events lock drag ghost and selection!) */}
+            {/* Interactive Crop Viewport Frame (Locks dragging to prevent exposing white background!) */}
             <div 
               onPointerDown={handlePanPointerDown}
               onPointerMove={handlePanPointerMove}
@@ -524,12 +548,14 @@ function NewProductForm() {
               <img 
                 src={cropSource} 
                 alt="" 
-                className="absolute pointer-events-none max-w-none origin-center" // Removed transition duration to prevent drag lag
+                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" // Centers image by default
                 style={{
-                  width: '100%',
-                  height: '100%',
+                  minWidth: '100%',
+                  minHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'cover',
-                  transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
                 }}
               />
               <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
@@ -543,7 +569,7 @@ function NewProductForm() {
             </div>
 
             {/* Zoom Slider */}
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 space-y-2 text-left">
               <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
                 <span>Zoom Scale</span>
                 <span>{zoom.toFixed(1)}x</span>
