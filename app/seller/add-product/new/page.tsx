@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
-// Wrap the product form inside Suspense to satisfy Next.js 15 compilation rules
 export default function NewProductPage() {
   return (
     <Suspense fallback={
@@ -21,8 +20,6 @@ export default function NewProductPage() {
 function NewProductForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
-  // Extract the brand name from the URL query parameter (e.g. ?brand=EcoWear)
   const urlBrandName = searchParams.get('brand') || '';
 
   // Form States
@@ -32,11 +29,14 @@ function NewProductForm() {
   const [category, setCategory] = useState('Home decor');
   const [price, setPrice] = useState('');
   const [minOrderAmount, setMinOrderAmount] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [status, setStatus] = useState('published'); // default as published
+  const [status, setStatus] = useState('published');
   
+  // MULTIPLE IMAGE STATES (NEW BATCH 4!)
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false); // Tracks image upload loading state
+  const [uploading, setUploading] = useState(false); 
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -46,38 +46,85 @@ function NewProductForm() {
     }
   }, [urlBrandName]);
 
-  // ASYNC IMAGE UPLOADER HANDLER (Uploads to Supabase Storage & gets Public URL)
+  // UNSAVED CHANGES ALERT (Warns user if they refresh or close tab accidentally!)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasChanges = title || description || price || minOrderAmount || imageUrls.length > 0;
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = ''; // Trigger native browser alert dialog
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [title, description, price, minOrderAmount, imageUrls]);
+
+  // SINGLE BUTTON MULTI-IMAGE UPLOADER
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      // Create a unique, clean filename to avoid overwrite conflicts
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      // Organize files inside folders named after each brand
-      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+      const safeFolder = brandName ? brandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : 'unregistered';
+      const filePath = `${safeFolder}/${fileName}`;
 
-      // Upload file to the 'product-images' bucket
       const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Retrieve the public URL for the newly uploaded file
       const { data } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
 
-      setImageUrl(data.publicUrl);
+      // Append new image URL to our array
+      setImageUrls((prev) => [...prev, data.publicUrl]);
     } catch (err: any) {
       console.error('Image upload failed:', err);
       alert('Failed to upload image: ' + err.message);
     } finally {
       setUploading(false);
     }
+  };
+
+  // Remove photo from gallery list
+  const handleRemovePhoto = (indexToRemove: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== indexToRemove));
+  };
+
+  // NATIVE HTML5 DRAG & DROP HANDLERS (Re-arranges array positions on-the-fly)
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Crucial to allow dropping!
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null) return;
+    const updated = [...imageUrls];
+    const [draggedItem] = updated.splice(draggedIndex, 1);
+    updated.splice(index, 0, draggedItem);
+    setImageUrls(updated);
+    setDraggedIndex(null);
+  };
+
+  // Confirm cancel action (Safe local routing alert)
+  const handleCancelClick = () => {
+    const hasChanges = title || description || price || minOrderAmount || imageUrls.length > 0;
+    if (hasChanges) {
+      const confirmRoute = window.confirm("You have unsaved changes! Are you sure you want to discard them and exit?");
+      if (!confirmRoute) return;
+    }
+    router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +138,9 @@ function NewProductForm() {
     }
 
     try {
+      // Save multiple images as a comma-separated list
+      const finalImageString = imageUrls.join(',');
+
       const { error } = await supabase.from('products').insert([
         {
           title,
@@ -99,7 +149,7 @@ function NewProductForm() {
           category,
           price: parseFloat(price),
           min_order_amount: parseFloat(minOrderAmount),
-          image_url: imageUrl || null,
+          image_url: finalImageString || null,
           status: status,
         },
       ]);
@@ -107,7 +157,6 @@ function NewProductForm() {
       if (error) throw error;
 
       alert('Product successfully listed!');
-      // Redirect back to the full-width dashboard page!
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
       console.error('Upload failed:', err);
@@ -133,40 +182,40 @@ function NewProductForm() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6">
-      <div className="max-w-4xl mx-auto">
-        {/* FAIRE STYLE HEADER */}
-        <header className="mb-8 flex justify-between items-center border-b border-gray-200 pb-4">
+      <div className="max-w-4xl mx-auto animate-in fade-in duration-200">
+        
+        {/* HEADER */}
+        <header className="mb-8 flex justify-between items-center border-b border-gray-200 pb-4 text-left">
           <div>
-            <Link href={`/seller/add-product?brand=${encodeURIComponent(brandName)}`} className="text-sm font-bold text-gray-500 hover:text-gray-900">
+            <button onClick={handleCancelClick} className="text-sm font-bold text-gray-500 hover:text-gray-900 cursor-pointer">
               ← Products
-            </Link>
+            </button>
             <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-2">New product</h1>
           </div>
           <div className="flex space-x-4">
             <button
-              onClick={() => router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`)}
-              className="border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold px-4 py-2.5 rounded text-sm transition"
+              onClick={handleCancelClick}
+              className="border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold px-4 py-2.5 rounded text-sm transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={loading || uploading}
-              className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-5 py-2.5 rounded text-sm transition disabled:bg-gray-200 shadow"
+              className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-5 py-2.5 rounded text-sm transition disabled:bg-gray-200 shadow cursor-pointer"
             >
               {loading ? 'Saving...' : 'Save & publish'}
             </button>
           </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8 text-left">
           
           {/* ================= SECTION 1: BASIC INFORMATION ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Basic information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
               
-              {/* Product Details Form */}
               <div className="space-y-5">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product details*</h3>
                 <p className="text-xs text-gray-400">Add a name and description to help retailers learn more about your product.</p>
@@ -193,12 +242,11 @@ function NewProductForm() {
                 </div>
               </div>
 
-              {/* Product Category Form */}
               <div className="space-y-5">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product category*</h3>
-                <p className="text-xs text-gray-400">Provide additional information to help us categorize your products on Oaklahome.</p>
+                <p className="text-xs text-gray-400">Provide additional information to help us categorize your products.</p>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Product Type</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Product Type</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -210,7 +258,7 @@ function NewProductForm() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Brand Owner (Locked)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Owner (Locked)</label>
                   <input
                     type="text"
                     value={brandName}
@@ -223,71 +271,68 @@ function NewProductForm() {
             </div>
           </section>
 
-          {/* ================= SECTION 2: IMAGES & VIDEOS (WITH FUNCTIONAL UPLOAD) ================= */}
+          {/* ================= SECTION 2: SINGLE-BUTTON DRAG-AND-DROP GALLERY ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-950 mb-2">Images & videos</h2>
-            <div className="space-y-5 mt-6">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product images*</h3>
-              <p className="text-xs text-gray-400">Add high-quality images. The first image will be your main product listing photo.</p>
+            <h2 className="text-xl font-bold text-gray-950 mb-1">Images & videos</h2>
+            <p className="text-xs text-gray-400 mb-6">Drag and drop thumbnails to rearrange. The first image will be your main cover photo.</p>
 
-              {/* 8-SQUARE FAIRE PHOTO GRID WITH CHOOSE FILE + PREVIEW */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                
-                {/* 1st Square: ACTIVE FILE UPLOADER & PREVIEW */}
-                <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 min-h-[12rem] relative transition duration-150">
+            <div className="flex flex-wrap gap-4 items-center">
+              
+              {/* Single Upload Button */}
+              {imageUrls.length < 8 && (
+                <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 w-36 h-36 relative transition duration-150">
                   {uploading ? (
-                    <div className="text-center space-y-2">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider animate-pulse">Uploading...</p>
-                    </div>
-                  ) : imageUrl ? (
-                    <div className="w-full h-full relative group">
-                      <img src={imageUrl} alt="Uploaded product" className="w-full h-full object-cover rounded-lg" />
-                      <button 
-                        type="button" 
-                        onClick={() => setImageUrl('')}
-                        className="absolute inset-0 bg-black/50 text-white font-bold text-xs flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition duration-150"
-                      >
-                        Remove Photo
-                      </button>
-                    </div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider animate-pulse">Uploading...</p>
                   ) : (
-                    <div className="w-full space-y-3">
-                      <span className="text-2xl">📤</span>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Upload from Desktop</p>
-                      
-                      {/* INVISBLE FILE INPUT OVERLAID BY A STYLISH BUTTON */}
-                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[9px] px-3 py-2 rounded-lg cursor-pointer uppercase tracking-widest transition duration-150">
-                        Choose File
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
+                    <div className="space-y-2">
+                      <span className="text-xl">📤</span>
+                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Add Photo</p>
+                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[8px] px-2.5 py-1.5 rounded cursor-pointer uppercase tracking-widest transition duration-150">
+                        Upload
+                        <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                       </label>
-
-                      {/* OTHER STANDARD OPTION: PASTE URL LINK */}
-                      <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest my-1">— OR —</p>
-                      <input
-                        type="url"
-                        placeholder="Paste Image URL link"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-[10px] focus:outline-none focus:border-gray-400 bg-white"
-                      />
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Remaining 7 empty squares exactly like Faire */}
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="border border-dashed border-gray-100 rounded-xl flex flex-col justify-center items-center text-center bg-gray-50/10 min-h-[12rem]">
-                    <span className="text-xl text-gray-300/60">📤</span>
-                    <p className="text-[10px] text-gray-300/80 font-bold mt-1 uppercase tracking-wider">Upload image</p>
-                  </div>
-                ))}
+              {/* Dynamic Rearrangeable Thumbnails */}
+              {imageUrls.map((url, index) => (
+                <div 
+                  key={index}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(index)}
+                  className={`w-36 h-36 rounded-xl overflow-hidden border bg-gray-50 relative group cursor-grab transition-transform duration-150 active:cursor-grabbing ${
+                    draggedIndex === index ? 'opacity-40 scale-95 border-gray-900' : 'border-gray-200 hover:border-gray-400 shadow-sm'
+                  }`}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  
+                  {/* Badge showing cover number */}
+                  <span className="absolute top-2 left-2 bg-gray-950/75 text-white font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider select-none">
+                    {index === 0 ? 'Cover 🖼️' : `#${index + 1}`}
+                  </span>
 
-              </div>
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] h-5 w-5 rounded-full flex items-center justify-center transition shadow opacity-0 group-hover:opacity-100 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              {/* Empty state slots (Displays up to 8 total items) */}
+              {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
+                <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
+                  <span className="text-lg">🖼️</span>
+                </div>
+              ))}
+
             </div>
           </section>
 
@@ -341,15 +386,15 @@ function NewProductForm() {
           <div className="flex justify-end space-x-4">
             <button
               type="button"
-              onClick={() => router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`)}
-              className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+              onClick={handleCancelClick}
+              className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || uploading}
-              className="bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed"
+              className="bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? 'Saving...' : 'Save & publish'}
             </button>

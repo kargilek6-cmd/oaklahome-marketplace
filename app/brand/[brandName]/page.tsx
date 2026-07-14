@@ -21,13 +21,14 @@ export default function BrandPage() {
   const [activeTab, setActiveTab] = useState<'products' | 'about'>('products');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
 
-  // EDIT MODAL STATES
+  // EDIT MODAL STATES (With Focal Alignment Slider!)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editStory, setEditStory] = useState('');
   const [editValues, setEditValues] = useState('');
   const [editYear, setEditYear] = useState('');
   const [editProfileUrl, setEditProfileUrl] = useState('');
   const [editCoverUrl, setEditCoverUrl] = useState('');
+  const [editCoverPosition, setEditCoverPosition] = useState('50'); // vertical focal slider (0% to 100%)
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -50,6 +51,7 @@ export default function BrandPage() {
         setEditYear(bData.established_year || '');
         setEditProfileUrl(bData.profile_photo_url || '');
         setEditCoverUrl(bData.cover_photo_url || '');
+        setEditCoverPosition(bData.cover_position || '50');
       }
 
       // Fetch products
@@ -176,6 +178,7 @@ export default function BrandPage() {
           brand_story: editStory || null,
           brand_values: editValues || null,
           established_year: editYear || null,
+          cover_position: editCoverPosition, // Save Focal alignment setting
         })
         .eq('brand_name', decodedBrandName);
 
@@ -209,10 +212,15 @@ export default function BrandPage() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* 1. COVER BANNER */}
+      {/* 1. COVER BANNER (WITH ADJUSTABLE VERTICAL ALIGNMENT) */}
       <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
         {brandProfile?.cover_photo_url ? (
-          <img src={brandProfile.cover_photo_url} alt="" className="w-full h-full object-cover" />
+          <img 
+            src={brandProfile.cover_photo_url} 
+            alt="" 
+            className="w-full h-full object-cover transition-all" 
+            style={{ objectPosition: `50% ${brandProfile.cover_position || '50'}%` }}
+          />
         ) : (
           <div className="text-center text-gray-300">
             <span className="text-4xl">🖼️</span>
@@ -226,7 +234,7 @@ export default function BrandPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING PROFILE SECTION (FIXED ALIGNMENT & CONTRAST) */}
+      {/* 2. OVERLAPPING PROFILE SECTION */}
       <div className="max-w-7xl mx-auto px-6 relative pb-12">
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between -mt-12 gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -242,11 +250,14 @@ export default function BrandPage() {
 
             {/* Brand details container with clear margins */}
             <div className="flex flex-col space-y-1.5 pt-2 sm:pt-4">
-              <h1 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none">
+              <h1 
+                className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none"
+                style={{ textShadow: '0 1px 1px rgba(255, 255, 255, 0.5)' }} // Text Shadow highlight
+              >
                 {decodedBrandName}
               </h1>
               
-              {/* Dynamic Ratings Loader (Higher Contrast & Spacious) */}
+              {/* Dynamic Ratings Loader */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-gray-600 font-semibold leading-none">
                 <span>India</span>
                 <span className="text-gray-300">•</span>
@@ -342,96 +353,100 @@ export default function BrandPage() {
           {activeTab === 'products' ? (
             filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {filteredProducts.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between"
-                  >
-                    <div>
-                      {product.image_url && (
-                        <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
-                          <img 
-                            src={product.image_url} 
-                            alt={product.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </Link>
-                      )}
-                      <div className="p-5">
+                {filteredProducts.map((product) => {
+                  // Get only first image in comma list
+                  const displayImg = product.image_url ? product.image_url.split(',')[0] : '';
+                  return (
+                    <div 
+                      key={product.id} 
+                      className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between"
+                    >
+                      <div>
+                        {displayImg && (
+                          <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
+                            <img 
+                              src={displayImg} 
+                              alt={product.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </Link>
+                        )}
+                        <div className="p-5">
+                          {isUserLoggedIn ? (
+                            <>
+                              <Link href={`/product/${product.id}`} className="block text-xl font-bold text-gray-950 hover:underline">
+                                {product.title}
+                              </Link>
+                              <p className="text-gray-600 text-sm mt-2 line-clamp-2">
+                                {product.description}
+                              </p>
+                              
+                              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                                <div>
+                                  <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
+                                    Wholesale Price
+                                  </p>
+                                  <p className="text-2xl font-black text-gray-950">
+                                    ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
+                                    Brand Min. Order
+                                  </p>
+                                  <p className="text-base font-bold text-gray-700">
+                                    ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-baseline mb-3">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                                  Pricing Protected 🔒
+                                </span>
+                              </div>
+                              <h3 className="text-xl font-bold text-gray-400 blur-[2px] select-none">{product.title}</h3>
+                              <p className="text-gray-500 text-sm mt-2 line-clamp-2">
+                                {product.description}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-5 pt-0">
                         {isUserLoggedIn ? (
-                          <>
-                            <Link href={`/product/${product.id}`} className="block text-xl font-bold text-gray-950 hover:underline">
-                              {product.title}
-                            </Link>
-                            <p className="text-gray-600 text-sm mt-2 line-clamp-2">
-                              {product.description}
-                            </p>
-                            
-                            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
-                              <div>
-                                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
-                                  Wholesale Price
-                                </p>
-                                <p className="text-2xl font-black text-gray-950">
-                                  ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
-                                  Brand Min. Order
-                                </p>
-                                <p className="text-base font-bold text-gray-700">
-                                  ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
-                                </p>
-                              </div>
-                            </div>
-                          </>
+                          <button
+                            onClick={() => {
+                              addToCart(product);
+                              alert(`Added "${product.title}" to cart!`);
+                            }}
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition duration-150 cursor-pointer"
+                          >
+                            + Add to Cart
+                          </button>
                         ) : (
-                          <>
-                            <div className="flex items-baseline mb-3">
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
-                                Pricing Protected 🔒
-                              </span>
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-400 blur-[2px] select-none">{product.title}</h3>
-                            <p className="text-gray-500 text-sm mt-2 line-clamp-2">
-                              {product.description}
-                            </p>
-                          </>
+                          <Link
+                            href="/"
+                            className="block text-center w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs py-3 rounded-lg transition duration-150"
+                          >
+                            Login to view pricing
+                          </Link>
                         )}
                       </div>
-                    </div>
 
-                    <div className="p-5 pt-0">
-                      {isUserLoggedIn ? (
-                        <button
-                          onClick={() => {
-                            addToCart(product);
-                            alert(`Added "${product.title}" to cart!`);
-                          }}
-                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition duration-150 cursor-pointer"
-                        >
-                          + Add to Cart
-                        </button>
-                      ) : (
-                        <Link
-                          href="/"
-                          className="block text-center w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs py-3 rounded-lg transition duration-150"
-                        >
-                          Login to view pricing
-                        </Link>
-                      )}
                     </div>
-
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
+              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <span className="text-3xl">📦</span>
                 <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
-                <p className="text-gray-400 text-sm mt-1 font-medium">This brand storefront is currently empty.</p>
+                <p className="text-gray-400 text-sm mt-1">This brand storefront is currently empty.</p>
                 {isBrandOwner && (
                   <Link 
                     href={`/seller/add-product/new?brand=${encodeURIComponent(decodedBrandName)}`}
@@ -508,13 +523,13 @@ export default function BrandPage() {
 
       </div>
 
-      {/* ================= 6. EDIT STORE DETAILS MODAL ================= */}
+      {/* ================= 6. EDIT STORE DETAILS MODAL (WITH BANNER ALIGNMENT SLIDER) ================= */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
           <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
             <button 
               onClick={() => setIsEditModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
             >
               ✕
             </button>
@@ -522,7 +537,7 @@ export default function BrandPage() {
             <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2">
               Edit Storefront Details
             </h2>
-            <p className="text-xs text-gray-400 mb-6 font-medium">Update your public brand cover logo and profile values.</p>
+            <p className="text-xs text-gray-400 mb-6 font-medium">Update your public brand cover logo, alignment and profile values.</p>
 
             <form onSubmit={handleSaveChanges} className="space-y-5">
               
@@ -571,6 +586,27 @@ export default function BrandPage() {
                   </div>
                 )}
               </div>
+
+              {/* DYNAMIC FOCAL POINT IMAGE POSITIONING SLIDER (NEW BATCH 3!) */}
+              {editCoverUrl && (
+                <div className="animate-in slide-in-from-top-2 duration-150">
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
+                    Adjust Banner Image Vertical Position ({editCoverPosition}%)
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={editCoverPosition}
+                      onChange={(e) => setEditCoverPosition(e.target.value)}
+                      className="w-full accent-gray-950 h-2 bg-gray-100 rounded-lg cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-gray-500 w-8">{editCoverPosition}%</span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Slide to vertical center of focal item (0% = Top, 100% = Bottom).</p>
+                </div>
+              )}
 
               {/* Brand Story */}
               <div>
