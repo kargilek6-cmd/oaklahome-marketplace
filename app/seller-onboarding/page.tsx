@@ -1,16 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase'; // Corrected path (2 levels up)
-import { useAuth } from '../context/AuthContext'; // Corrected path (1 level up)
+import { supabase } from '../../lib/supabase'; 
+import { useAuth } from '../context/AuthContext'; 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { login } = useAuth(); // Connect to our login control room
+  const { login } = useAuth(); 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  // Uploading Loading States
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Active tab inside Step 6's preview card ('about' vs 'products')
+  const [previewTab, setPreviewTab] = useState<'about' | 'products'>('about');
 
   // Form States (matching your Supabase "brands" columns)
   const [firstName, setFirstName] = useState('');
@@ -21,7 +28,7 @@ export default function OnboardingPage() {
   
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [noWebsite, setNoWebsite] = useState(false); // State for "no website" checkbox
+  const [noWebsite, setNoWebsite] = useState(false); 
   const [category, setCategory] = useState('');
   
   const [profilePhotoUrl, setProfilePhotoUrl] = useState('');
@@ -35,6 +42,66 @@ export default function OnboardingPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // PROFILE PHOTO UPLOADER (Uploads to 'product-images' bucket)
+  const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingProfile(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `profile-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setProfilePhotoUrl(data.publicUrl);
+    } catch (err: any) {
+      console.error('Profile upload failed:', err);
+      alert('Failed to upload profile photo: ' + err.message);
+    } finally {
+      setUploadingProfile(false);
+    }
+  };
+
+  // COVER PHOTO UPLOADER (Uploads to 'product-images' bucket)
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cover-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${brandName ? encodeURIComponent(brandName) : 'unregistered'}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setCoverPhotoUrl(data.publicUrl);
+    } catch (err: any) {
+      console.error('Cover upload failed:', err);
+      alert('Failed to upload cover photo: ' + err.message);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
 
   // Handle final submission to Supabase
   const handleFinalSubmit = async () => {
@@ -60,7 +127,6 @@ export default function OnboardingPage() {
 
       if (error) throw error;
 
-      // SUCCESS! Automatically log in the new seller instantly
       login({
         email: email,
         role: 'SELLER',
@@ -69,7 +135,6 @@ export default function OnboardingPage() {
         lastName: lastName,
       });
 
-      // Redirect them to their new dashboard page (pre-filled with their brand)
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
       console.error('Onboarding submission failed:', err);
@@ -85,7 +150,6 @@ export default function OnboardingPage() {
     'Pets', 'Jewelry', 'Something else'
   ];
 
-  // If the page hasn't finished loading in the browser, show a simple loading screen
   if (!mounted) {
     return (
       <div className="min-h-screen bg-white flex justify-center items-center">
@@ -188,13 +252,12 @@ export default function OnboardingPage() {
 
               <button
                 type="submit"
-                className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow"
+                className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow cursor-pointer"
               >
                 Next
               </button>
             </form>
 
-            {/* INTEGRATED BRAND PORTAL SIGN IN LINK */}
             <div className="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 font-semibold uppercase tracking-wider">
               <p>
                 Already have a brand?{' '}
@@ -259,13 +322,13 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                  className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow"
+                  className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow cursor-pointer"
                 >
                   Next
                 </button>
@@ -288,13 +351,13 @@ export default function OnboardingPage() {
             <div className="flex space-x-4 mt-8">
               <button
                 onClick={() => setStep(2)}
-                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
               >
                 Back
               </button>
               <button
                 onClick={() => setStep(4)}
-                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow"
+                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow cursor-pointer"
               >
                 Next
               </button>
@@ -318,7 +381,7 @@ export default function OnboardingPage() {
                   key={catName}
                   type="button"
                   onClick={() => setCategory(catName)}
-                  className={`w-full text-left border px-5 py-4 rounded-lg font-semibold text-sm transition duration-150 ${
+                  className={`w-full text-left border px-5 py-4 rounded-lg font-semibold text-sm transition duration-150 cursor-pointer ${
                     category === catName 
                       ? 'border-gray-900 bg-gray-50 text-gray-950 shadow-sm ring-1 ring-gray-950' 
                       : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
@@ -332,14 +395,14 @@ export default function OnboardingPage() {
             <div className="flex space-x-4 mt-8">
               <button
                 onClick={() => setStep(3)}
-                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
               >
                 Back
               </button>
               <button
                 disabled={!category}
                 onClick={() => setStep(5)}
-                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed"
+                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next
               </button>
@@ -361,13 +424,13 @@ export default function OnboardingPage() {
             <div className="flex space-x-4 mt-8">
               <button
                 onClick={() => setStep(4)}
-                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
               >
                 Back
               </button>
               <button
                 onClick={() => setStep(6)}
-                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow"
+                className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow cursor-pointer"
               >
                 Next
               </button>
@@ -379,7 +442,7 @@ export default function OnboardingPage() {
         {step === 6 && (
           <div className="max-w-6xl w-full flex flex-col lg:flex-row gap-12 items-start text-left">
             
-            {/* LEFT SIDE: LIVE-UPDATING STOREFRONT PREVIEW */}
+            {/* LEFT SIDE: LIVE-UPDATING STOREFRONT PREVIEW CARD */}
             <div className="w-full lg:w-1/2 sticky top-24 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-md">
               {/* Cover Photo */}
               <div className="w-full h-44 bg-gray-100 relative overflow-hidden flex items-center justify-center">
@@ -388,7 +451,7 @@ export default function OnboardingPage() {
                 ) : (
                   <div className="text-center p-4">
                     <span className="text-3xl text-gray-300">🖼️</span>
-                    <p className="text-xs text-gray-400 font-bold mt-1 uppercase tracking-wider">Drag & drop or upload cover photo</p>
+                    <p className="text-xs text-gray-400 font-bold mt-1 uppercase tracking-wider">Preview Banner Photo</p>
                   </div>
                 )}
               </div>
@@ -404,76 +467,139 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="mt-10">
-                  <h2 className="text-2xl font-black text-gray-950 tracking-tight">{brandName || 'jkdwf'}</h2>
-                  <p className="text-sm text-gray-400 font-semibold mt-1">Swoosh, India</p>
+                  <h2 className="text-2xl font-black text-gray-950 tracking-tight">{brandName || 'Your Brand'}</h2>
+                  <p className="text-sm text-gray-400 font-semibold mt-1">India</p>
 
-                  {/* Tabs */}
+                  {/* ACTIVE PREVIEW TABS: Clicking switches active mock view */}
                   <div className="flex space-x-6 border-b border-gray-100 mt-6 text-sm font-bold text-gray-400">
-                    <span className="pb-3 border-b-2 border-transparent">Products</span>
-                    <span className="pb-3 border-b-2 border-gray-900 text-gray-900">About</span>
+                    <button 
+                      onClick={() => setPreviewTab('products')}
+                      className={`pb-3 border-b-2 transition ${
+                        previewTab === 'products' ? 'border-gray-900 text-gray-900' : 'border-transparent hover:text-gray-600'
+                      }`}
+                    >
+                      Products
+                    </button>
+                    <button 
+                      onClick={() => setPreviewTab('about')}
+                      className={`pb-3 border-b-2 transition ${
+                        previewTab === 'about' ? 'border-gray-900 text-gray-900' : 'border-transparent hover:text-gray-600'
+                      }`}
+                    >
+                      About
+                    </button>
                   </div>
 
-                  {/* About content */}
-                  <div className="mt-6 space-y-4">
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">About {brandName || 'Brand'}</h4>
-                      <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                        {brandStory || 'Write your brand story...'}
-                      </p>
-                    </div>
+                  {/* Dynamic Inner Tab Switcher */}
+                  <div className="mt-6 min-h-[14rem]">
+                    {previewTab === 'about' ? (
+                      <div className="space-y-4 animate-in fade-in duration-150">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">About {brandName || 'Brand'}</h4>
+                          <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                            {brandStory || 'Write your brand story...'}
+                          </p>
+                        </div>
 
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Brand Values</h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {brandValues || 'Add your brand values...'}
-                      </p>
-                    </div>
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">Brand Values</h4>
+                          <p className="text-sm text-gray-600 mt-1 font-medium">
+                            {brandValues || 'Add your brand values...'}
+                          </p>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50 text-xs">
-                      <div>
-                        <p className="text-gray-400 font-bold uppercase tracking-wider">Established In</p>
-                        <p className="font-semibold text-gray-800 mt-0.5">{establishedYear || 'Add year'}</p>
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50 text-xs font-medium">
+                          <div>
+                            <p className="text-gray-400 font-bold uppercase tracking-wider">Established In</p>
+                            <p className="font-semibold text-gray-800 mt-0.5">{establishedYear || 'Add year'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 font-bold uppercase tracking-wider">Based In</p>
+                            <p className="font-semibold text-gray-800 mt-0.5">India</p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-400 font-bold uppercase tracking-wider">Based In</p>
-                        <p className="font-semibold text-gray-800 mt-0.5">Swoosh, India</p>
+                    ) : (
+                      /* Mock dynamic products tab list */
+                      <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-150 text-left">
+                        {[...Array(2)].map((_, i) => (
+                          <div key={i} className="border border-gray-100 rounded-xl overflow-hidden p-3 bg-gray-50/30">
+                            <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300 text-lg">📦</div>
+                            <h4 className="font-bold text-xs text-gray-800 mt-2 uppercase tracking-wide">Listed Product Title</h4>
+                            <p className="text-[10px] text-gray-400 font-bold mt-1">₹Wholesale Price</p>
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* RIGHT SIDE: CUSTOMIZER INPUT FORMS */}
+            {/* RIGHT SIDE: CUSTOMIZER INPUT FORMS (WITH FILE UPLOADERS) */}
             <div className="w-full lg:w-1/2 space-y-6">
               <div>
                 <h1 className="text-3xl font-serif font-semibold text-gray-950 tracking-tight">Build your shop page</h1>
                 <p className="text-gray-500 text-sm mt-1">Complete your store's visual identity so buyers can learn about you.</p>
               </div>
 
-              <div className="space-y-5 bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="space-y-5 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                
+                {/* 1. Functional Profile Photo Uploader */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Profile Photo / Logo Link</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={profilePhotoUrl}
-                    onChange={(e) => setProfilePhotoUrl(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                  />
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Profile Photo / Logo *</label>
+                  {uploadingProfile ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                  ) : profilePhotoUrl ? (
+                    <div className="flex items-center space-x-4 border border-gray-200 rounded-xl p-3 bg-gray-50/20">
+                      <img src={profilePhotoUrl} alt="Logo" className="w-12 h-12 rounded-full object-cover border" />
+                      <button 
+                        type="button" 
+                        onClick={() => setProfilePhotoUrl('')}
+                        className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                      >
+                        Remove Photo
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex border border-gray-200 rounded-xl bg-gray-50/30 overflow-hidden">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
+                      </label>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* 2. Functional Cover Photo Uploader */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Photo Link</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={coverPhotoUrl}
-                    onChange={(e) => setCoverPhotoUrl(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                  />
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Banner Photo *</label>
+                  {uploadingCover ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                  ) : coverPhotoUrl ? (
+                    <div className="flex items-center space-x-4 border border-gray-200 rounded-xl p-3 bg-gray-50/20">
+                      <img src={coverPhotoUrl} alt="Cover" className="w-20 h-10 rounded object-cover border" />
+                      <button 
+                        type="button" 
+                        onClick={() => setCoverPhotoUrl('')}
+                        className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                      >
+                        Remove Photo
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex border border-gray-200 rounded-xl bg-gray-50/30 overflow-hidden">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                      </label>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* 3. Brand Story Input */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Story</label>
                   <textarea
@@ -485,6 +611,7 @@ export default function OnboardingPage() {
                   />
                 </div>
 
+                {/* 4. Brand Values */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Values (optional)</label>
                   <input
@@ -496,6 +623,7 @@ export default function OnboardingPage() {
                   />
                 </div>
 
+                {/* 5. Established Year */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Year Established (optional)</label>
                   <input
@@ -508,19 +636,20 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="flex space-x-4">
                 <button
                   type="button"
                   onClick={() => setStep(5)}
-                  className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition"
+                  className="w-1/3 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3.5 px-6 rounded text-sm transition cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  disabled={loading}
+                  disabled={loading || uploadingProfile || uploadingCover}
                   onClick={handleFinalSubmit}
-                  className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed"
+                  className="w-2/3 bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? 'Completing Onboarding...' : 'Build Shop & Next'}
                 </button>
