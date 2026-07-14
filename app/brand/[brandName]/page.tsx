@@ -176,7 +176,7 @@ export default function BrandPage() {
           brand_story: editStory || null,
           brand_values: editValues || null,
           established_year: editYear || null,
-         })
+        })
         .eq('brand_name', decodedBrandName);
 
       if (error) throw error;
@@ -226,13 +226,13 @@ export default function BrandPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING PROFILE SECTION (FIXED SPACING - NO OVERLAPPING BRAND NAME) */}
+      {/* 2. OVERLAPPING PROFILE SECTION (FIXED ALIGNMENT & CONTRAST) */}
       <div className="max-w-7xl mx-auto px-6 relative pb-12">
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between -mt-12 gap-6 text-center sm:text-left">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
             
             {/* Overlapping Circle Logo */}
-            <div className="w-24 h-24 bg-white border-4 border-white rounded-full overflow-hidden shadow-md flex items-center justify-center flex-shrink-0 z-10">
+            <div className="w-24 h-24 bg-white border-4 border-white rounded-full overflow-hidden shadow-lg flex items-center justify-center flex-shrink-0 z-10">
               {brandProfile?.profile_photo_url ? (
                 <img src={brandProfile.profile_photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -240,20 +240,32 @@ export default function BrandPage() {
               )}
             </div>
 
-            {/* Brand Title (Now pushed slightly right to prevent overlapping with logo) */}
-            <div className="pb-2">
-              <h1 className="text-3xl font-black text-gray-950 tracking-tight">
+            {/* Brand details container with clear margins */}
+            <div className="flex flex-col space-y-1.5 pt-2 sm:pt-4">
+              <h1 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none">
                 {decodedBrandName}
               </h1>
               
-              {/* Dynamic Ratings Loader */}
-              <p className="text-sm text-gray-400 font-semibold mt-0.5">
-                India • {averageRating ? `${averageRating} ★ (${totalReviews} reviews)` : 'No reviews yet'}
-              </p>
+              {/* Dynamic Ratings Loader (Higher Contrast & Spacious) */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-gray-600 font-semibold leading-none">
+                <span>India</span>
+                <span className="text-gray-300">•</span>
+                {averageRating ? (
+                  <div className="flex items-center space-x-1">
+                    <span className="text-amber-500 text-base">★</span>
+                    <span className="text-gray-950 font-black">{averageRating}</span>
+                    <span className="text-gray-500 font-medium">({totalReviews} reviews)</span>
+                  </div>
+                ) : (
+                  <span className="text-gray-500 font-medium">No reviews yet</span>
+                )}
+              </div>
               
-              <p className="text-xs text-gray-500 font-bold mt-2.5 uppercase tracking-wider bg-gray-50 border border-gray-150 rounded px-2.5 py-1 inline-block">
-                ₹{brandMin?.toLocaleString('en-IN')} Minimum Order
-              </p>
+              <div className="pt-1">
+                <span className="text-xs text-gray-700 font-bold uppercase tracking-wider bg-gray-50 border border-gray-150 rounded-md px-3 py-1.5 inline-block">
+                  ₹{brandMin?.toLocaleString('en-IN')} Minimum Order
+                </span>
+              </div>
             </div>
           </div>
 
@@ -419,7 +431,7 @@ export default function BrandPage() {
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <span className="text-3xl">📦</span>
                 <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
-                <p className="text-gray-400 text-sm mt-1">This brand storefront is currently empty.</p>
+                <p className="text-gray-400 text-sm mt-1 font-medium">This brand storefront is currently empty.</p>
                 {isBrandOwner && (
                   <Link 
                     href={`/seller/add-product/new?brand=${encodeURIComponent(decodedBrandName)}`}
@@ -431,7 +443,7 @@ export default function BrandPage() {
               </div>
             )
           ) : (
-            /* About Brand Story Panel + Real Buyer Reviews List (Faire Style!) */
+            /* About Brand Story Panel + Real Buyer Reviews List */
             <div className="max-w-3xl space-y-12 animate-in fade-in duration-200">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 uppercase tracking-wider">Our Story</h3>
