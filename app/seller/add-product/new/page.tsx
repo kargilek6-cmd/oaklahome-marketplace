@@ -28,6 +28,10 @@ function NewProductForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlBrandName = searchParams.get('brand') || '';
+  
+  // UNIFIED ROUTE DETECTOR: Checks if we are editing (?id=123)
+  const productId = searchParams.get('id') || '';
+  const isEditing = productId !== '';
 
   // Form States
   const [title, setTitle] = useState('');
@@ -35,12 +39,15 @@ function NewProductForm() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Home decor');
   const [price, setPrice] = useState('');
-  const [minOrderAmount, setMinOrderAmount] = useState('');
   const [status, setStatus] = useState('published');
   
-  // MULTIPLE IMAGE STATES
+  // MULTIPLE IMAGE STATES & CLICK-AND-DRAG REPOSITIONING
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [editCoverPosition, setEditCoverPosition] = useState('50'); // Product focal slider (0 to 100)
+  const [isDraggingPosition, setIsDraggingPosition] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [startPosition, setStartPosition] = useState(50);
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false); 
@@ -52,42 +59,70 @@ function NewProductForm() {
       setBrandName(decodeURIComponent(urlBrandName));
     }
 
-    const savedDraft = localStorage.getItem('oaklahome_draft_product');
-    if (savedDraft) {
+    async function loadActiveProduct() {
       try {
-        const draft = JSON.parse(savedDraft);
-        if (draft.title) setTitle(draft.title);
-        if (draft.description) setDescription(draft.description);
-        if (draft.category) setCategory(draft.category);
-        if (draft.price) setPrice(draft.price);
-        if (draft.minOrderAmount) setMinOrderAmount(draft.minOrderAmount);
-        if (draft.imageUrls) setImageUrls(draft.imageUrls);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data) {
+          setTitle(data.title || '');
+          setDescription(data.description || '');
+          setCategory(data.category || 'Home decor');
+          setPrice(data.price ? data.price.toString() : '');
+          setEditCoverPosition(data.image_position || '50');
+          setImageUrls(data.image_url ? data.image_url.split(',') : []);
+          setStatus(data.status || 'published');
+        }
       } catch (e) {
-        console.error('Failed to parse draft details:', e);
+        console.error('Failed to fetch existing product details:', e);
+      } finally {
+        setMounted(true);
       }
     }
-    setMounted(true);
-  }, [urlBrandName]);
 
-  // 2. AUTOSAVE EFFECT (Instantly saves draft locally whenever any field changes)
+    if (isEditing) {
+      loadActiveProduct();
+    } else {
+      // If adding new, restore draft from browser memory
+      const savedDraft = localStorage.getItem('oaklahome_draft_product');
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          if (draft.title) setTitle(draft.title);
+          if (draft.description) setDescription(draft.description);
+          if (draft.category) setCategory(draft.category);
+          if (draft.price) setPrice(draft.price);
+          if (draft.imageUrls) setImageUrls(draft.imageUrls);
+        } catch (e) {
+          console.error('Failed to parse draft details:', e);
+        }
+      }
+      setMounted(true);
+    }
+  }, [urlBrandName, productId, isEditing]);
+
+  // 2. AUTOSAVE EFFECT (Only runs when adding new, disabled for editing!)
   useEffect(() => {
-    if (mounted) {
+    if (mounted && !isEditing) {
       const draftPayload = {
         title,
         description,
         category,
         price,
-        minOrderAmount,
         imageUrls
       };
       localStorage.setItem('oaklahome_draft_product', JSON.stringify(draftPayload));
     }
-  }, [title, description, category, price, minOrderAmount, imageUrls, mounted]);
+  }, [title, description, category, price, imageUrls, mounted, isEditing]);
 
-  // 3. BEFOREUNLOAD WARNING (Browser native exit blocker)
+  // 3. BEFOREUNLOAD WARNING
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const hasChanges = title || description || price || minOrderAmount || imageUrls.length > 0;
+      const hasChanges = title || description || price || imageUrls.length > 0;
       if (hasChanges) {
         e.preventDefault();
         e.returnValue = ''; 
@@ -98,7 +133,7 @@ function NewProductForm() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [title, description, price, minOrderAmount, imageUrls]);
+  }, [title, description, price, imageUrls]);
 
   // AUTOMATED IMAGE RESOLUTION CHECKER (Verifies 2048 x 2048px or higher)
   const validateImageResolution = (file: File): Promise<boolean> => {
@@ -106,7 +141,7 @@ function NewProductForm() {
       const img = new Image();
       img.src = URL.createObjectURL(file);
       img.onload = () => {
-        URL.revokeObjectURL(img.src); // Clean up memory
+        URL.revokeObjectURL(img.src);
         if (img.width < 2048 || img.height < 2048) {
           alert(`Image resolution is too low (${img.width} x ${img.height} px).\n\nProduct images must be 2048 x 2048 pixels or higher to ensure high-quality listings on Oaklahome.`);
           resolve(false);
@@ -175,14 +210,39 @@ function NewProductForm() {
     setDraggedIndex(null);
   };
 
+  // CLICK-AND-DRAG PRODUCT IMAGE POSITION DETECTOR HANDLERS (NEW BATCH 10!)
+  const handlePositionMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingPosition(true);
+    setStartY(e.pageY);
+    setStartPosition(parseFloat(editCoverPosition));
+  };
+
+  const handlePositionMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingPosition) return;
+    const { height } = e.currentTarget.getBoundingClientRect();
+    const deltaY = e.pageY - startY;
+    const deltaPercentage = (deltaY / height) * 100;
+    
+    // We drag down to shift the image downward
+    let newPosition = Math.max(0, Math.min(100, Math.round(startPosition + deltaPercentage)));
+    setEditCoverPosition(newPosition.toString());
+  };
+
+  const handlePositionMouseUp = () => {
+    setIsDraggingPosition(false);
+  };
+
   // Confirm cancel action (Safe local routing alert)
   const handleCancelClick = () => {
-    const hasChanges = title || description || price || minOrderAmount || imageUrls.length > 0;
+    const hasChanges = title || description || price || imageUrls.length > 0;
     if (hasChanges) {
       const confirmRoute = window.confirm("You have unsaved changes! Are you sure you want to discard them and exit?");
       if (!confirmRoute) return;
       
-      localStorage.removeItem('oaklahome_draft_product');
+      if (!isEditing) {
+        localStorage.removeItem('oaklahome_draft_product');
+      }
     }
     router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
   };
@@ -191,7 +251,7 @@ function NewProductForm() {
     e.preventDefault();
     setLoading(true);
 
-    if (!title || !brandName || !price || !minOrderAmount) {
+    if (!title || !brandName || !price) {
       alert('Please fill out all required fields.');
       setLoading(false);
       return;
@@ -200,28 +260,46 @@ function NewProductForm() {
     try {
       const finalImageString = imageUrls.join(',');
 
-      const { error } = await supabase.from('products').insert([
-        {
-          title,
-          brand_name: brandName,
-          description,
-          category,
-          price: parseFloat(price),
-          min_order_amount: parseFloat(minOrderAmount),
-          image_url: finalImageString || null,
-          status: status,
-        },
-      ]);
+      if (isEditing) {
+        const { error } = await supabase
+          .from('products')
+          .update({
+            title,
+            description,
+            category,
+            price: parseFloat(price),
+            image_url: finalImageString || null,
+            image_position: editCoverPosition,
+            status: status,
+          })
+          .eq('id', productId);
 
-      if (error) throw error;
+        if (error) throw error;
+        alert('Product details successfully updated!');
+      } else {
+        const { error } = await supabase.from('products').insert([
+          {
+            title,
+            brand_name: brandName,
+            description,
+            category,
+            price: parseFloat(price),
+            min_order_amount: 0, 
+            image_url: finalImageString || null,
+            image_position: editCoverPosition,
+            status: status,
+          },
+        ]);
 
-      localStorage.removeItem('oaklahome_draft_product');
+        if (error) throw error;
+        localStorage.removeItem('oaklahome_draft_product');
+        alert('Product successfully listed!');
+      }
 
-      alert('Product successfully listed!');
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
-      console.error('Upload failed:', err);
-      alert('Failed to list product: ' + err.message);
+      console.error('Save failed:', err);
+      alert('Failed to save listing: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -245,7 +323,9 @@ function NewProductForm() {
             <button onClick={handleCancelClick} className="text-sm font-bold text-gray-500 hover:text-gray-900 cursor-pointer">
               ← Products
             </button>
-            <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-2">New product</h1>
+            <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-1">
+              {isEditing ? 'Product Details' : 'Add product details'}
+            </h1>
           </div>
           <div className="flex space-x-4">
             <button
@@ -331,6 +411,35 @@ function NewProductForm() {
             <h2 className="text-xl font-bold text-gray-950 mb-1">Images & videos</h2>
             <p className="text-xs text-gray-400 mb-6">Drag and drop thumbnails to rearrange. The first image will be your main cover photo.</p>
 
+            {/* NEW BATCH 10: TACTILE CLICK-AND-DRAG PRODUCT IMAGE POSITION ADJUSTER */}
+            {imageUrls.length > 0 && (
+              <div className="space-y-2 mb-6 animate-in slide-in-from-top-2 duration-150">
+                <label className="block text-xs font-bold text-gray-700 uppercase">
+                  Click and Drag Up/Down directly on the image to adjust its center position
+                </label>
+                <div 
+                  onMouseDown={handlePositionMouseDown}
+                  onMouseMove={handlePositionMouseMove}
+                  onMouseUp={handlePositionMouseUp}
+                  onMouseLeave={handlePositionMouseUp}
+                  className="w-full max-w-sm aspect-square border border-gray-200 rounded-xl overflow-hidden relative cursor-ns-resize bg-gray-50/50 select-none group"
+                  title="Drag Up/Down to Center"
+                >
+                  <img 
+                    src={imageUrls[0]} 
+                    alt="Product preview" 
+                    className="w-full h-full object-cover pointer-events-none" 
+                    style={{ objectPosition: `50% ${editCoverPosition}%` }}
+                  />
+                  <div className="absolute inset-0 bg-black/40 text-white font-bold text-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-150 pointer-events-none gap-2">
+                    <span className="text-xl">↕️</span>
+                    <span>Drag Up/Down to Center Product</span>
+                    <span className="bg-gray-900/80 px-2.5 py-1 rounded text-[10px] mt-1 font-semibold">focal alignment: {editCoverPosition}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-4 items-center">
               
               {/* Single Upload Button */}
@@ -363,7 +472,7 @@ function NewProductForm() {
                     draggedIndex === index ? 'opacity-40 scale-95 border-gray-900' : 'border-gray-200 hover:border-gray-400 shadow-sm'
                   }`}
                 >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
                   
                   {/* Badge showing cover number */}
                   <span className="absolute top-2 left-2 bg-gray-950/75 text-white font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider select-none">
@@ -381,7 +490,7 @@ function NewProductForm() {
                 </div>
               ))}
 
-              {/* Empty state slots (Displays up to 8 total items) */}
+              {/* Empty state slots */}
               {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
                 <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
                   <span className="text-lg">🖼️</span>
@@ -394,7 +503,7 @@ function NewProductForm() {
           {/* ================= SECTION 3: PRICING & ORDER RULES ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Pricing & Order Rules</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Wholesale Price (₹) *</label>
@@ -410,24 +519,11 @@ function NewProductForm() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Min. Order (₹) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="₹100.00"
-                  value={minOrderAmount}
-                  onChange={(e) => setMinOrderAmount(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Status</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Listing Status</label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
+                  className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
                 >
                   <option value="published">Published (Visible on Market)</option>
                   <option value="draft">Draft (Hidden in Catalog)</option>
