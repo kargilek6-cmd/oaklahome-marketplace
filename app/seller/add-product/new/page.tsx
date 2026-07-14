@@ -5,6 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
+// Move categories to the top of the file so TypeScript can access it anywhere
+const categories = [
+  'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
+  'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
+  'Pets', 'Jewelry', 'Something else'
+];
+
 export default function NewProductPage() {
   return (
     <Suspense fallback={
@@ -93,10 +100,31 @@ function NewProductForm() {
     };
   }, [title, description, price, minOrderAmount, imageUrls]);
 
+  // AUTOMATED IMAGE RESOLUTION CHECKER (Verifies 2048 x 2048px or higher)
+  const validateImageResolution = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(img.src); // Clean up memory
+        if (img.width < 2048 || img.height < 2048) {
+          alert(`Image resolution is too low (${img.width} x ${img.height} px).\n\nProduct images must be 2048 x 2048 pixels or higher to ensure high-quality listings on Oaklahome.`);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+    });
+  };
+
   // SINGLE BUTTON MULTI-IMAGE UPLOADER
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Enforce 2048x2048 pixel resolution limit
+    const isValidResolution = await validateImageResolution(file);
+    if (!isValidResolution) return;
 
     setUploading(true);
     try {
@@ -154,7 +182,6 @@ function NewProductForm() {
       const confirmRoute = window.confirm("You have unsaved changes! Are you sure you want to discard them and exit?");
       if (!confirmRoute) return;
       
-      // Wipe draft since they explicitly chose to discard changes
       localStorage.removeItem('oaklahome_draft_product');
     }
     router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
@@ -188,7 +215,6 @@ function NewProductForm() {
 
       if (error) throw error;
 
-      // Wipe draft since it is successfully saved to Supabase
       localStorage.removeItem('oaklahome_draft_product');
 
       alert('Product successfully listed!');
