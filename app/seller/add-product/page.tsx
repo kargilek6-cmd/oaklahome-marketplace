@@ -94,12 +94,19 @@ function AddProductForm() {
       <div className="max-w-7xl mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         
         {/* HEADER WITH VIEWS LINK & BLACK ADD PRODUCTS BUTTON */}
-        <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-6 gap-4 text-left">
+        <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-gray-100 pb-6 gap-4 text-left">
           <div>
             <h2 className="text-3xl font-black text-gray-950 tracking-tight">Products</h2>
             <p className="text-sm text-gray-500 mt-1">Manage your wholesale catalog for {brandName || 'your brand'}.</p>
           </div>
-          <div className="flex items-center space-x-3.5 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center space-x-3.5 w-full lg:w-auto">
+            {/* Direct Edit Store button that opens your modal automatically */}
+            <Link 
+              href={`/brand/${encodeURIComponent(brandName)}?edit=true`}
+              className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-4 rounded transition duration-150 text-center"
+            >
+              ✏️ Edit Store
+            </Link>
             <Link 
               href={`/brand/${encodeURIComponent(brandName)}`}
               className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs py-3 px-4 rounded transition duration-150 text-center"

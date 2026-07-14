@@ -20,39 +20,164 @@ export default function BrandPage() {
   const [activeTab, setActiveTab] = useState<'products' | 'about'>('products');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
 
-  useEffect(() => {
-    async function fetchBrandData() {
-      if (!decodedBrandName) return;
-      try {
-        // 1. Fetch brand profile story details
-        const { data: bData } = await supabase
-          .from('brands')
-          .select('*')
-          .eq('brand_name', decodedBrandName)
-          .maybeSingle();
+  // EDIT MODAL STATES
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editStory, setEditStory] = useState('');
+  const [editValues, setEditValues] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [editProfileUrl, setEditProfileUrl] = useState('');
+  const [editCoverUrl, setEditCoverUrl] = useState('');
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
 
-        setBrandProfile(bData);
+  // Fetch brand profile data
+  const fetchBrandData = async () => {
+    if (!decodedBrandName) return;
+    try {
+      const { data: bData } = await supabase
+        .from('brands')
+        .select('*')
+        .eq('brand_name', decodedBrandName)
+        .maybeSingle();
 
-        // 2. Fetch brand catalog products
-        const { data: pData, error: pError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('brand_name', decodedBrandName);
+      setBrandProfile(bData);
 
-        if (pError) throw pError;
-        setProducts(pData || []);
-      } catch (err) {
-        console.error('Error fetching brand data:', err);
-      } finally {
-        setLoading(false);
+      // Pre-fill edit modal form states
+      if (bData) {
+        setEditStory(bData.brand_story || '');
+        setEditValues(bData.brand_values || '');
+        setEditYear(bData.established_year || '');
+        setEditProfileUrl(bData.profile_photo_url || '');
+        setEditCoverUrl(bData.cover_photo_url || '');
       }
+
+      const { data: pData, error: pError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('brand_name', decodedBrandName);
+
+      if (pError) throw pError;
+      setProducts(pData || []);
+    } catch (err) {
+      console.error('Error fetching brand data:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchBrandData();
   }, [decodedBrandName]);
 
+  // Read URL query parameter ?edit=true safely on client side
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined' && brandProfile) {
+      const params = new URLSearchParams(window.location.search);
+      const isOwner = user?.role === 'SELLER' && user?.brandName === decodedBrandName;
+      if (params.get('edit') === 'true' && isOwner) {
+        setIsEditModalOpen(true);
+      }
+    }
+  }, [user, decodedBrandName, mounted, brandProfile]);
+
   const isUserLoggedIn = user !== null;
 
-  // Filter products locally based on search input
+  // Is the logged-in user the owner of this exact brand?
+  const isBrandOwner = mounted && user?.role === 'SELLER' && user?.brandName === decodedBrandName;
+
+  // Profile Upload handler
+  const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingProfile(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `profile-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const safeFolder = decodedBrandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      const filePath = `${safeFolder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setEditProfileUrl(data.publicUrl);
+    } catch (err: any) {
+      console.error('Profile upload failed:', err);
+      alert('Failed to upload logo: ' + err.message);
+    } finally {
+      setUploadingProfile(false);
+    }
+  };
+
+  // Cover Upload handler
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cover-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const safeFolder = decodedBrandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      const filePath = `${safeFolder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setEditCoverUrl(data.publicUrl);
+    } catch (err: any) {
+      console.error('Cover upload failed:', err);
+      alert('Failed to upload banner: ' + err.message);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // Handle saving the edited changes to Supabase
+  const handleSaveChanges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdateLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('brands')
+        .update({
+          profile_photo_url: editProfileUrl || null,
+          cover_photo_url: editCoverUrl || null,
+          brand_story: editStory || null,
+          brand_values: editValues || null,
+          established_year: editYear || null,
+        })
+        .eq('brand_name', decodedBrandName);
+
+      if (error) throw error;
+
+      alert('Storefront updated successfully!');
+      setIsEditModalOpen(false);
+      fetchBrandData(); // Reload details instantly
+    } catch (err: any) {
+      console.error('Failed to update storefront:', err);
+      alert('Failed to update store: ' + err.message);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
   const filteredProducts = products.filter((product) =>
     product.title.toLowerCase().includes(localSearchQuery.toLowerCase())
   );
@@ -112,18 +237,29 @@ export default function BrandPage() {
             </div>
           </div>
 
-          {/* Social CTAs */}
-          <div className="flex space-x-3 pb-2 w-full md:w-auto">
-            <button className="flex-1 md:flex-none border border-gray-200 hover:bg-gray-50 font-bold text-xs px-5 py-3 rounded-xl transition cursor-not-allowed">
-              💬 Message brand
-            </button>
-            <button className="flex-1 md:flex-none bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow">
-              Follow Brand
-            </button>
+          {/* Conditional CTAs Panel (Hides standard buttons if logged in seller owns the brand) */}
+          <div className="flex space-x-3 pb-2 w-full md:w-auto text-left">
+            {isBrandOwner ? (
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="w-full md:w-auto bg-gray-950 hover:bg-gray-800 text-white font-black text-xs px-6 py-3.5 rounded-xl transition shadow cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <span>✏️</span> <span>Edit Store Details</span>
+              </button>
+            ) : (
+              <>
+                <button className="flex-1 md:flex-none border border-gray-200 hover:bg-gray-50 font-bold text-xs px-5 py-3 rounded-xl transition cursor-not-allowed">
+                  💬 Message brand
+                </button>
+                <button className="flex-1 md:flex-none bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow cursor-pointer">
+                  Follow Brand
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* 3. OAKLAHOME MARKET EVENT ALERT BANNER (Matches Faire Promo Strip) */}
+        {/* 3. OAKLAHOME MARKET EVENT ALERT BANNER */}
         <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 mt-10 text-left flex justify-between items-center text-sm font-semibold text-amber-800">
           <div className="flex items-center space-x-2">
             <span>✨</span>
@@ -155,9 +291,8 @@ export default function BrandPage() {
             </button>
           </div>
 
-          {/* Inner Store Search Field */}
           {activeTab === 'products' && (
-            <div className="relative w-full md:w-64 mb-3 md:mb-0">
+            <div className="relative w-full md:w-64 mb-3 md:mb-0 text-left">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">🔍</span>
               <input
                 type="text"
@@ -173,7 +308,6 @@ export default function BrandPage() {
         {/* 5. TAB VIEW INNER PANELS */}
         <div className="mt-8 text-left">
           {activeTab === 'products' ? (
-            /* Products Grid Panel */
             filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {filteredProducts.map((product) => (
@@ -182,7 +316,6 @@ export default function BrandPage() {
                     className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between"
                   >
                     <div>
-                      {/* Image links to the Product Details Page PDP! */}
                       {product.image_url && (
                         <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
                           <img 
@@ -195,7 +328,6 @@ export default function BrandPage() {
                       <div className="p-5">
                         {isUserLoggedIn ? (
                           <>
-                            {/* Title links to the Product Details Page PDP! */}
                             <Link href={`/product/${product.id}`} className="block text-xl font-bold text-gray-950 hover:underline">
                               {product.title}
                             </Link>
@@ -203,7 +335,6 @@ export default function BrandPage() {
                               {product.description}
                             </p>
                             
-                            {/* Pricing Info */}
                             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
                               <div>
                                 <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
@@ -266,7 +397,7 @@ export default function BrandPage() {
             ) : (
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <p className="text-gray-500 font-bold text-lg">No products found</p>
-                <p className="text-gray-400 text-sm mt-1">No products match your inner search query.</p>
+                <p className="text-gray-400 text-sm mt-1">No products match your search.</p>
               </div>
             )
           ) : (
@@ -275,7 +406,7 @@ export default function BrandPage() {
               <div>
                 <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 uppercase tracking-wider">Our Story</h3>
                 <p className="text-sm text-gray-600 leading-relaxed mt-4 whitespace-pre-wrap">
-                  {brandProfile?.brand_story || 'This brand is setting up their story profile. Read back soon!'}
+                  {brandProfile?.brand_story || 'This brand is setting up their story profile.'}
                 </p>
               </div>
 
@@ -301,6 +432,129 @@ export default function BrandPage() {
         </div>
 
       </div>
+
+      {/* ================= 6. EDIT STORE DETAILS MODAL ================= */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
+          <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
+            <button 
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2">
+              Edit Storefront Details
+            </h2>
+            <p className="text-xs text-gray-400 mb-6 font-medium">Update your public brand cover logo and profile values.</p>
+
+            <form onSubmit={handleSaveChanges} className="space-y-5">
+              
+              {/* Profile Logo Uploader */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Profile Logo Photo</label>
+                {uploadingProfile ? (
+                  <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                ) : editProfileUrl ? (
+                  <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
+                    <img src={editProfileUrl} alt="" className="w-12 h-12 rounded-full object-cover border" />
+                    <button type="button" onClick={() => setEditProfileUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
+                      Remove Logo
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
+                    <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                      Choose Logo File
+                      <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
+                    </label>
+                    <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cover Banner Uploader */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Banner Photo</label>
+                {uploadingCover ? (
+                  <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                ) : editCoverUrl ? (
+                  <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
+                    <img src={editCoverUrl} alt="" className="w-20 h-10 rounded object-cover border" />
+                    <button type="button" onClick={() => setEditCoverUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
+                      Remove Banner
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
+                    <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                      Choose Banner File
+                      <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                    </label>
+                    <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Brand Story */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Story</label>
+                <textarea
+                  rows={4}
+                  placeholder="Describe your brand's heritage or journey..."
+                  value={editStory}
+                  onChange={(e) => setEditStory(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                />
+              </div>
+
+              {/* Brand Values */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Values</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Handmade, Eco-friendly"
+                  value={editValues}
+                  onChange={(e) => setEditValues(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                />
+              </div>
+
+              {/* Year Established */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Year Established</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 2023"
+                  value={editYear}
+                  onChange={(e) => setEditYear(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-3 px-5 rounded-lg text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateLoading || uploadingProfile || uploadingCover}
+                  className="bg-gray-950 hover:bg-gray-800 text-white font-black py-3 px-5 rounded-lg text-xs transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {updateLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
