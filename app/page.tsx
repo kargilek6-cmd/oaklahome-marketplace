@@ -398,7 +398,7 @@ export default function Home() {
             ) : (
               <>
                 <Link href="/seller-onboarding" className="hover:text-gray-950 transition">Sign up to sell</Link>
-                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer font-bold">Sign in</button>
+                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer">Sign in</button>
                 <button onClick={() => openAuthModal('signup')} className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in">Sign up to buy</button>
               </>
             )}
@@ -699,20 +699,42 @@ export default function Home() {
                               </Link>
                               <div className="mt-2.5">
                                 <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                                <p className="text-xs text-gray-500 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                                <p className="text-xs text-gray-505 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
                               </div>
                             </div>
                             
-                            {/* Add to Cart button */}
-                            <button
-                              onClick={() => {
-                                addToCart(product);
-                                alert(`Added "${product.title}" to cart!`);
-                              }}
-                              className="w-full mt-3 bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
-                            >
-                              + Add to Cart
-                            </button>
+                            {/* Add to Cart Button (With Context-Aware Roles!) */}
+                            {isUserLoggedIn && user.role === 'SELLER' ? (
+                              user.brandName === product.brand_name ? (
+                                <Link
+                                  href={`/seller/add-product/new?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
+                                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 text-center block"
+                                >
+                                  ✏️ Edit Product
+                                </Link>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="w-full mt-3 bg-gray-100 text-gray-400 font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-not-allowed text-center"
+                                >
+                                  Sellers cannot buy
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Inject parent Brand minimum order limit
+                                  addToCart({
+                                    ...product,
+                                    min_order_amount: brandMinMap[product.brand_name] || 0
+                                  });
+                                  alert(`Added "${product.title}" to cart!`);
+                                }}
+                                className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                              >
+                                + Add to Cart
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -967,20 +989,39 @@ export default function Home() {
                             </p>
                           </div>
                           
+                          {/* CONTEXT-AWARE CONVERSION ACTION FOR LISTED PRODUCTS (NEW BATCH 8!) */}
                           {isUserLoggedIn ? (
-                            <button
-                              onClick={() => {
-                                // NEW BATCH 7: Inject parent Brand minimum order limit
-                                addToCart({
-                                  ...product,
-                                  min_order_amount: currentBrandMin
-                                });
-                                alert(`Added "${product.title}" to cart!`);
-                              }}
-                              className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
-                            >
-                              + Add to Cart
-                            </button>
+                            user.role === 'SELLER' ? (
+                              user.brandName === product.brand_name ? (
+                                <Link
+                                  href={`/seller/add-product/new?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 text-center block"
+                                >
+                                  ✏️ Edit Product
+                                </Link>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="bg-gray-100 text-gray-400 font-bold text-xs py-2.5 px-4 rounded-lg transition cursor-not-allowed text-center"
+                                >
+                                  Sellers cannot buy
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Inject parent Brand minimum order limit
+                                  addToCart({
+                                    ...product,
+                                    min_order_amount: currentBrandMin
+                                  });
+                                  alert(`Added "${product.title}" to cart!`);
+                                }}
+                                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
+                              >
+                                + Add to Cart
+                              </button>
+                            )
                           ) : (
                             <button
                               onClick={() => openAuthModal('signin')}
