@@ -21,14 +21,15 @@ export default function BrandPage() {
   const [activeTab, setActiveTab] = useState<'products' | 'about'>('products');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
 
-  // EDIT MODAL STATES (With Focal Alignment Slider!)
+  // EDIT MODAL STATES
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editStory, setEditStory] = useState('');
   const [editValues, setEditValues] = useState('');
   const [editYear, setEditYear] = useState('');
   const [editProfileUrl, setEditProfileUrl] = useState('');
   const [editCoverUrl, setEditCoverUrl] = useState('');
-  const [editCoverPosition, setEditCoverPosition] = useState('50'); // vertical focal slider (0% to 100%)
+  const [editCoverPosition, setEditCoverPosition] = useState('50'); 
+  const [editMinOrder, setEditMinOrder] = useState(''); // NEW BATCH 7: Editable brand minimum!
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function BrandPage() {
         setEditProfileUrl(bData.profile_photo_url || '');
         setEditCoverUrl(bData.cover_photo_url || '');
         setEditCoverPosition(bData.cover_position || '50');
+        setEditMinOrder(bData.min_order_amount ? bData.min_order_amount.toString() : '0');
       }
 
       // Fetch products
@@ -178,7 +180,8 @@ export default function BrandPage() {
           brand_story: editStory || null,
           brand_values: editValues || null,
           established_year: editYear || null,
-          cover_position: editCoverPosition, // Save Focal alignment setting
+          cover_position: editCoverPosition,
+          min_order_amount: parseFloat(editMinOrder) || 0, // NEW BATCH 7: Save Brand Minimum Order!
         })
         .eq('brand_name', decodedBrandName);
 
@@ -199,7 +202,8 @@ export default function BrandPage() {
     product.title.toLowerCase().includes(localSearchQuery.toLowerCase())
   );
 
-  const brandMin = products.length > 0 ? products[0].min_order_amount : 0;
+  // Read Minimum Order Limit directly from the Brand Profile row (NEW BATCH 7!)
+  const brandMin = brandProfile?.min_order_amount || 0;
 
   if (!mounted || loading) {
     return (
@@ -212,7 +216,7 @@ export default function BrandPage() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* 1. COVER BANNER (WITH ADJUSTABLE VERTICAL ALIGNMENT) */}
+      {/* 1. COVER BANNER */}
       <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
         {brandProfile?.cover_photo_url ? (
           <img 
@@ -252,7 +256,7 @@ export default function BrandPage() {
             <div className="flex flex-col space-y-1.5 pt-2 sm:pt-4">
               <h1 
                 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none"
-                style={{ textShadow: '0 1px 1px rgba(255, 255, 255, 0.5)' }} // Text Shadow highlight
+                style={{ textShadow: '0 1px 1px rgba(255, 255, 255, 0.5)' }} 
               >
                 {decodedBrandName}
               </h1>
@@ -354,20 +358,20 @@ export default function BrandPage() {
             filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {filteredProducts.map((product) => {
-                  // Get only first image in comma list
-                  const displayImg = product.image_url ? product.image_url.split(',')[0] : '';
+                  const firstImage = product.image_url ? product.image_url.split(',')[0] : '';
                   return (
                     <div 
                       key={product.id} 
                       className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between"
                     >
                       <div>
-                        {displayImg && (
-                          <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
+                        {firstImage && (
+                          <Link href={`/product/${product.id}`} className="relative block w-full aspect-square bg-gray-50 cursor-pointer overflow-hidden">
                             <img 
-                              src={displayImg} 
+                              src={firstImage} 
                               alt={product.title} 
                               className="w-full h-full object-cover"
+                              style={{ objectPosition: `50% ${product.image_position || '50'}%` }}
                             />
                           </Link>
                         )}
@@ -395,7 +399,7 @@ export default function BrandPage() {
                                     Brand Min. Order
                                   </p>
                                   <p className="text-base font-bold text-gray-700">
-                                    ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+                                    ₹{brandMin ? brandMin.toLocaleString('en-IN') : '0'} min
                                   </p>
                                 </div>
                               </div>
@@ -420,7 +424,11 @@ export default function BrandPage() {
                         {isUserLoggedIn ? (
                           <button
                             onClick={() => {
-                              addToCart(product);
+                              // NEW BATCH 7: Pass the global Brand minimum order into Cart
+                              addToCart({
+                                ...product,
+                                min_order_amount: brandMin 
+                              });
                               alert(`Added "${product.title}" to cart!`);
                             }}
                             className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition duration-150 cursor-pointer"
@@ -442,11 +450,11 @@ export default function BrandPage() {
                 })}
               </div>
             ) : (
-              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL */
+              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <span className="text-3xl">📦</span>
                 <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
-                <p className="text-gray-400 text-sm mt-1">This brand storefront is currently empty.</p>
+                <p className="text-gray-400 text-sm mt-1 font-medium">This brand storefront is currently empty.</p>
                 {isBrandOwner && (
                   <Link 
                     href={`/seller/add-product/new?brand=${encodeURIComponent(decodedBrandName)}`}
@@ -523,7 +531,7 @@ export default function BrandPage() {
 
       </div>
 
-      {/* ================= 6. EDIT STORE DETAILS MODAL (WITH BANNER ALIGNMENT SLIDER) ================= */}
+      {/* ================= 6. EDIT STORE DETAILS MODAL ================= */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
           <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
@@ -587,7 +595,7 @@ export default function BrandPage() {
                 )}
               </div>
 
-              {/* DYNAMIC FOCAL POINT IMAGE POSITIONING SLIDER (NEW BATCH 3!) */}
+              {/* DYNAMIC FOCAL POINT IMAGE POSITIONING SLIDER */}
               {editCoverUrl && (
                 <div className="animate-in slide-in-from-top-2 duration-150">
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -607,6 +615,22 @@ export default function BrandPage() {
                   <p className="text-[10px] text-gray-400 mt-1">Slide to vertical center of focal item (0% = Top, 100% = Bottom).</p>
                 </div>
               )}
+
+              {/* BATCH 7: EDITABLE BRAND-LEVEL MINIMUM ORDER LIMIT */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
+                  Brand Minimum Order Limit (₹) *
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g., 2000"
+                  value={editMinOrder}
+                  onChange={(e) => setEditMinOrder(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 font-semibold"
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1">This minimum order limit is enforced dynamically across your storefront and products catalog cart checkout.</p>
+              </div>
 
               {/* Brand Story */}
               <div>

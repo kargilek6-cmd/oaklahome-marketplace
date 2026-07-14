@@ -398,7 +398,7 @@ export default function Home() {
             ) : (
               <>
                 <Link href="/seller-onboarding" className="hover:text-gray-950 transition">Sign up to sell</Link>
-                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer">Sign in</button>
+                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer font-bold">Sign in</button>
                 <button onClick={() => openAuthModal('signup')} className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in">Sign up to buy</button>
               </>
             )}
@@ -709,7 +709,7 @@ export default function Home() {
                                 addToCart(product);
                                 alert(`Added "${product.title}" to cart!`);
                               }}
-                              className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                              className="w-full mt-3 bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
                             >
                               + Add to Cart
                             </button>
@@ -970,7 +970,11 @@ export default function Home() {
                           {isUserLoggedIn ? (
                             <button
                               onClick={() => {
-                                addToCart(product);
+                                // NEW BATCH 7: Inject parent Brand minimum order limit
+                                addToCart({
+                                  ...product,
+                                  min_order_amount: currentBrandMin
+                                });
                                 alert(`Added "${product.title}" to cart!`);
                               }}
                               className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
