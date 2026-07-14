@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
+// Move categories to the top of the file so TypeScript can access it anywhere
 const categories = [
   'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
   'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
@@ -40,7 +41,7 @@ function NewProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES
+  // INTERACTIVE CROP MODAL STATES (With Pointer Capture!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
@@ -118,24 +119,25 @@ function NewProductForm() {
     setPanY(0);
     setIsCropModalOpen(true);
 
-    // Reset uploader input so user can select same image again if needed
     e.target.value = '';
   };
 
-  // CROP PANNING HANDLERS
-  const handlePanMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // POINTER CAPTURE PANNING HANDLERS (Locks dragging and blocks browser selection)
+  const handlePanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId); // Captures pointer
     setIsPanning(true);
     setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
   };
 
-  const handlePanMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
     setPanX(e.clientX - dragStart.x);
     setPanY(e.clientY - dragStart.y);
   };
 
-  const handlePanMouseUp = () => {
+  const handlePanPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
     setIsPanning(false);
   };
 
@@ -161,14 +163,12 @@ function NewProductForm() {
       const NH = img.naturalHeight;
       const minSide = Math.min(NW, NH);
 
-      // Crop dimension window on source image
       const sw = minSide / zoom;
       const sh = minSide / zoom;
 
       // Scaling factors to translate viewport drag coordinates to natural pixels
-      const scaleFactor = minSide / 320; // Viewport is 320x320px
+      const scaleFactor = minSide / 320; 
 
-      // Calculate source top-left corner crop window
       const cx = NW / 2;
       const cy = NH / 2;
       const sx = cx - sw / 2 - (panX * scaleFactor);
@@ -187,7 +187,6 @@ function NewProductForm() {
     };
   };
 
-  // UPLOAD FINALISED CROPPED FILE TO SUPABASE
   const handleUploadToSupabase = async (file: File) => {
     try {
       const fileExt = file.name.split('.').pop();
@@ -216,7 +215,6 @@ function NewProductForm() {
     }
   };
 
-  // Remove photo from gallery list
   const handleRemovePhoto = (indexToRemove: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
@@ -239,7 +237,6 @@ function NewProductForm() {
     setDraggedIndex(null);
   };
 
-  // Confirm cancel action (Safe local routing alert)
   const handleCancelClick = () => {
     const hasChanges = title || description || price || imageUrls.length > 0;
     if (hasChanges) {
@@ -500,13 +497,13 @@ function NewProductForm() {
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL ================= */}
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE!) ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center">
             <button 
               onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
             >
               ✕
             </button>
@@ -516,18 +513,18 @@ function NewProductForm() {
             </h3>
             <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
 
-            {/* Interactive Crop Viewport Frame */}
+            {/* Interactive Crop Viewport Frame (Pointer Events lock drag ghost and selection!) */}
             <div 
-              onMouseDown={handlePanMouseDown}
-              onMouseMove={handlePanMouseMove}
-              onMouseUp={handlePanMouseUp}
-              onMouseLeave={handlePanMouseUp}
-              className="w-[320px] h-[320px] mx-auto border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none"
+              onPointerDown={handlePanPointerDown}
+              onPointerMove={handlePanPointerMove}
+              onPointerUp={handlePanPointerUp}
+              onPointerCancel={handlePanPointerUp}
+              className="w-[320px] h-[320px] mx-auto border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none touch-none"
             >
               <img 
                 src={cropSource} 
                 alt="" 
-                className="absolute pointer-events-none max-w-none transition-transform duration-75 origin-center"
+                className="absolute pointer-events-none max-w-none origin-center" // Removed transition duration to prevent drag lag
                 style={{
                   width: '100%',
                   height: '100%',
@@ -535,7 +532,6 @@ function NewProductForm() {
                   transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
                 }}
               />
-              {/* Grid guide markings */}
               <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
                 <div className="border-b border-white/20 h-1/3 w-full" />
                 <div className="border-b border-white/20 h-1/3 w-full" />
