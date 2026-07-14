@@ -16,6 +16,7 @@ export default function BrandPage() {
 
   const [brandProfile, setBrandProfile] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'products' | 'about'>('products');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
@@ -43,7 +44,6 @@ export default function BrandPage() {
 
       setBrandProfile(bData);
 
-      // Pre-fill edit modal form states
       if (bData) {
         setEditStory(bData.brand_story || '');
         setEditValues(bData.brand_values || '');
@@ -52,6 +52,7 @@ export default function BrandPage() {
         setEditCoverUrl(bData.cover_photo_url || '');
       }
 
+      // Fetch products
       const { data: pData, error: pError } = await supabase
         .from('products')
         .select('*')
@@ -59,6 +60,16 @@ export default function BrandPage() {
 
       if (pError) throw pError;
       setProducts(pData || []);
+
+      // Fetch real buyer reviews for this brand
+      const { data: rData } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('brand_name', decodedBrandName)
+        .order('created_at', { ascending: false });
+
+      setReviews(rData || []);
+
     } catch (err) {
       console.error('Error fetching brand data:', err);
     } finally {
@@ -70,7 +81,6 @@ export default function BrandPage() {
     fetchBrandData();
   }, [decodedBrandName]);
 
-  // Read URL query parameter ?edit=true safely on client side
   useEffect(() => {
     if (mounted && typeof window !== 'undefined' && brandProfile) {
       const params = new URLSearchParams(window.location.search);
@@ -82,9 +92,13 @@ export default function BrandPage() {
   }, [user, decodedBrandName, mounted, brandProfile]);
 
   const isUserLoggedIn = user !== null;
-
-  // Is the logged-in user the owner of this exact brand?
   const isBrandOwner = mounted && user?.role === 'SELLER' && user?.brandName === decodedBrandName;
+
+  // DYNAMIC RATING CALCULATOR
+  const totalReviews = reviews.length;
+  const averageRating = totalReviews > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
+    : null;
 
   // Profile Upload handler
   const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,14 +176,14 @@ export default function BrandPage() {
           brand_story: editStory || null,
           brand_values: editValues || null,
           established_year: editYear || null,
-        })
+         })
         .eq('brand_name', decodedBrandName);
 
       if (error) throw error;
 
       alert('Storefront updated successfully!');
       setIsEditModalOpen(false);
-      fetchBrandData(); // Reload details instantly
+      fetchBrandData(); 
     } catch (err: any) {
       console.error('Failed to update storefront:', err);
       alert('Failed to update store: ' + err.message);
@@ -195,7 +209,7 @@ export default function BrandPage() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* 1. FAIRE-STYLE COVER BANNER */}
+      {/* 1. COVER BANNER */}
       <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
         {brandProfile?.cover_photo_url ? (
           <img src={brandProfile.cover_photo_url} alt="" className="w-full h-full object-cover" />
@@ -212,10 +226,11 @@ export default function BrandPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING PROFILE SECTION */}
+      {/* 2. OVERLAPPING PROFILE SECTION (FIXED SPACING - NO OVERLAPPING BRAND NAME) */}
       <div className="max-w-7xl mx-auto px-6 relative pb-12">
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between -mt-12 gap-6">
-          <div className="flex items-end space-x-6 text-left">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between -mt-12 gap-6 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
+            
             {/* Overlapping Circle Logo */}
             <div className="w-24 h-24 bg-white border-4 border-white rounded-full overflow-hidden shadow-md flex items-center justify-center flex-shrink-0 z-10">
               {brandProfile?.profile_photo_url ? (
@@ -224,34 +239,39 @@ export default function BrandPage() {
                 <span className="text-3xl text-gray-300">👤</span>
               )}
             </div>
+
+            {/* Brand Title (Now pushed slightly right to prevent overlapping with logo) */}
             <div className="pb-2">
               <h1 className="text-3xl font-black text-gray-950 tracking-tight">
                 {decodedBrandName}
               </h1>
+              
+              {/* Dynamic Ratings Loader */}
               <p className="text-sm text-gray-400 font-semibold mt-0.5">
-                India • 4.8 ★ (12 brand reviews)
+                India • {averageRating ? `${averageRating} ★ (${totalReviews} reviews)` : 'No reviews yet'}
               </p>
-              <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-wider bg-gray-50 border border-gray-150 rounded px-2.5 py-1 inline-block">
+              
+              <p className="text-xs text-gray-500 font-bold mt-2.5 uppercase tracking-wider bg-gray-50 border border-gray-150 rounded px-2.5 py-1 inline-block">
                 ₹{brandMin?.toLocaleString('en-IN')} Minimum Order
               </p>
             </div>
           </div>
 
-          {/* Conditional CTAs Panel (Hides standard buttons if logged in seller owns the brand) */}
-          <div className="flex space-x-3 pb-2 w-full md:w-auto text-left">
+          {/* Conditional CTAs Panel */}
+          <div className="flex space-x-3 pb-2 w-full sm:w-auto justify-center sm:justify-end">
             {isBrandOwner ? (
               <button 
                 onClick={() => setIsEditModalOpen(true)}
-                className="w-full md:w-auto bg-gray-950 hover:bg-gray-800 text-white font-black text-xs px-6 py-3.5 rounded-xl transition shadow cursor-pointer flex items-center justify-center space-x-1.5"
+                className="w-full sm:w-auto bg-gray-950 hover:bg-gray-800 text-white font-black text-xs px-6 py-3.5 rounded-xl transition shadow cursor-pointer flex items-center justify-center space-x-1.5"
               >
                 <span>✏️</span> <span>Edit Store Details</span>
               </button>
             ) : (
               <>
-                <button className="flex-1 md:flex-none border border-gray-200 hover:bg-gray-50 font-bold text-xs px-5 py-3 rounded-xl transition cursor-not-allowed">
+                <button className="flex-1 sm:flex-none border border-gray-200 hover:bg-gray-50 font-bold text-xs px-5 py-3 rounded-xl transition cursor-not-allowed">
                   💬 Message brand
                 </button>
-                <button className="flex-1 md:flex-none bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow cursor-pointer">
+                <button className="flex-1 sm:flex-none bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow cursor-pointer">
                   Follow Brand
                 </button>
               </>
@@ -395,14 +415,24 @@ export default function BrandPage() {
                 ))}
               </div>
             ) : (
+              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
-                <p className="text-gray-500 font-bold text-lg">No products found</p>
-                <p className="text-gray-400 text-sm mt-1">No products match your search.</p>
+                <span className="text-3xl">📦</span>
+                <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
+                <p className="text-gray-400 text-sm mt-1">This brand storefront is currently empty.</p>
+                {isBrandOwner && (
+                  <Link 
+                    href={`/seller/add-product/new?brand=${encodeURIComponent(decodedBrandName)}`}
+                    className="mt-6 inline-block bg-gray-950 hover:bg-gray-800 text-white font-black text-xs py-3.5 px-6 rounded-xl transition shadow cursor-pointer"
+                  >
+                    + Add products
+                  </Link>
+                )}
               </div>
             )
           ) : (
-            /* About Brand Story Panel */
-            <div className="max-w-3xl space-y-8 animate-in fade-in duration-200">
+            /* About Brand Story Panel + Real Buyer Reviews List (Faire Style!) */
+            <div className="max-w-3xl space-y-12 animate-in fade-in duration-200">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 uppercase tracking-wider">Our Story</h3>
                 <p className="text-sm text-gray-600 leading-relaxed mt-4 whitespace-pre-wrap">
@@ -427,6 +457,39 @@ export default function BrandPage() {
                   <p className="mt-1">{brandProfile?.category || 'General Wholesale'}</p>
                 </div>
               </div>
+
+              {/* FAIRE STYLE REAL RETAILER REVIEWS LIST */}
+              <div className="pt-6 border-t border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 pb-3 uppercase tracking-wider">
+                  Retailer Reviews ({totalReviews})
+                </h3>
+
+                {reviews.length > 0 ? (
+                  <div className="mt-6 space-y-6 divide-y divide-gray-100">
+                    {reviews.map((rev) => {
+                      const rDate = new Date(rev.created_at).toLocaleDateString('en-IN', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                      });
+                      return (
+                        <div key={rev.id} className="pt-6 first:pt-0">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="font-bold text-gray-800">{rev.buyer_name}</span>
+                            <span className="text-xs text-gray-400">{rDate}</span>
+                          </div>
+                          <div className="text-amber-500 font-bold text-xs mt-1">
+                            {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 mt-4 font-medium">No customer reviews yet. Orders completed will show real buyer reviews here.</p>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -439,7 +502,7 @@ export default function BrandPage() {
           <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
             <button 
               onClick={() => setIsEditModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
             >
               ✕
             </button>
