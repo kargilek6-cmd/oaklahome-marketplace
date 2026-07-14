@@ -411,7 +411,6 @@ export default function Home() {
 
           {/* MOBILE RIGHT SECTION */}
           <div className="flex md:hidden items-center space-x-4">
-            {/* Search Icon button */}
             <button 
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
               className="text-gray-700 hover:text-gray-950 p-1 cursor-pointer"
@@ -421,7 +420,6 @@ export default function Home() {
               </svg>
             </button>
 
-            {/* Mobile Cart Icon */}
             <Link 
               href="/cart" 
               className="bg-gray-50 text-gray-700 border border-gray-100 p-2 rounded-full transition flex items-center justify-center relative cursor-pointer"
@@ -437,7 +435,7 @@ export default function Home() {
 
         </div>
 
-        {/* MOBILE COLLAPSIBLE SEARCH BAR INPUT */}
+        {/* MOBILE COLLAPSIBLE SEARCH BAR */}
         {isMobileSearchOpen && (
           <div className="mt-3 relative md:hidden animate-in slide-in-from-top-2 duration-150">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -683,11 +681,12 @@ export default function Home() {
                           <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
                             <div>
                               {/* B2B Route to Product Detail Page PDP! */}
-                              <Link href={`/product/${product.id}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
                                 <img 
                                   src={firstImage} 
                                   alt="" 
                                   className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                                  style={{ objectPosition: `50% ${product.image_position || '50'}%` }} // Dynamic focal alignment
                                 />
                               </Link>
                               <div className="mt-2.5">
@@ -775,6 +774,7 @@ export default function Home() {
                         src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600'} 
                         alt={brand.brand_name} 
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        style={{ objectPosition: `50% ${brand.cover_position || '50'}%` }} // Dynamic brand focal alignment
                       />
                     </Link>
                     <div className="mt-3">
@@ -872,7 +872,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 4: THE PRODUCTS CATALOG GRID */}
+      {/* SECTION 4: THE PRODUCTS CATALOG GRID (SQUARE GRAPHIC ALIGNMENTS) */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
@@ -894,11 +894,13 @@ export default function Home() {
                     >
                       <div>
                         {firstImage && (
-                          <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
+                          /* FORCE PERFECT SQUARE 1:1 RATIO + DYNAMIC FOCAL ALIGNMENT */
+                          <Link href={`/product/${product.id}`} className="relative block w-full aspect-square bg-gray-50 cursor-pointer overflow-hidden">
                             <img 
                               src={firstImage} 
                               alt={product.title} 
                               className="w-full h-full object-cover"
+                              style={{ objectPosition: `50% ${product.image_position || '50'}%` }} // Product focal positioning
                             />
                           </Link>
                         )}
