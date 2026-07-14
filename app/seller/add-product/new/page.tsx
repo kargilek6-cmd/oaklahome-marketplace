@@ -31,7 +31,7 @@ function NewProductForm() {
   const [minOrderAmount, setMinOrderAmount] = useState('');
   const [status, setStatus] = useState('published');
   
-  // MULTIPLE IMAGE STATES (NEW BATCH 4!)
+  // MULTIPLE IMAGE STATES
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -39,20 +39,51 @@ function NewProductForm() {
   const [uploading, setUploading] = useState(false); 
   const [mounted, setMounted] = useState(false);
 
+  // 1. HYDRATION & DRAFT RESTORER (Loads any unsaved draft from browser memory on mount)
   useEffect(() => {
-    setMounted(true);
     if (urlBrandName) {
       setBrandName(decodeURIComponent(urlBrandName));
     }
+
+    const savedDraft = localStorage.getItem('oaklahome_draft_product');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        if (draft.title) setTitle(draft.title);
+        if (draft.description) setDescription(draft.description);
+        if (draft.category) setCategory(draft.category);
+        if (draft.price) setPrice(draft.price);
+        if (draft.minOrderAmount) setMinOrderAmount(draft.minOrderAmount);
+        if (draft.imageUrls) setImageUrls(draft.imageUrls);
+      } catch (e) {
+        console.error('Failed to parse draft details:', e);
+      }
+    }
+    setMounted(true);
   }, [urlBrandName]);
 
-  // UNSAVED CHANGES ALERT (Warns user if they refresh or close tab accidentally!)
+  // 2. AUTOSAVE EFFECT (Instantly saves draft locally whenever any field changes)
+  useEffect(() => {
+    if (mounted) {
+      const draftPayload = {
+        title,
+        description,
+        category,
+        price,
+        minOrderAmount,
+        imageUrls
+      };
+      localStorage.setItem('oaklahome_draft_product', JSON.stringify(draftPayload));
+    }
+  }, [title, description, category, price, minOrderAmount, imageUrls, mounted]);
+
+  // 3. BEFOREUNLOAD WARNING (Browser native exit blocker)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const hasChanges = title || description || price || minOrderAmount || imageUrls.length > 0;
       if (hasChanges) {
         e.preventDefault();
-        e.returnValue = ''; // Trigger native browser alert dialog
+        e.returnValue = ''; 
       }
     };
 
@@ -84,7 +115,6 @@ function NewProductForm() {
         .from('product-images')
         .getPublicUrl(filePath);
 
-      // Append new image URL to our array
       setImageUrls((prev) => [...prev, data.publicUrl]);
     } catch (err: any) {
       console.error('Image upload failed:', err);
@@ -99,13 +129,13 @@ function NewProductForm() {
     setImageUrls((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
-  // NATIVE HTML5 DRAG & DROP HANDLERS (Re-arranges array positions on-the-fly)
+  // NATIVE HTML5 DRAG & DROP HANDLERS
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Crucial to allow dropping!
+    e.preventDefault(); 
   };
 
   const handleDrop = (index: number) => {
@@ -123,6 +153,9 @@ function NewProductForm() {
     if (hasChanges) {
       const confirmRoute = window.confirm("You have unsaved changes! Are you sure you want to discard them and exit?");
       if (!confirmRoute) return;
+      
+      // Wipe draft since they explicitly chose to discard changes
+      localStorage.removeItem('oaklahome_draft_product');
     }
     router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
   };
@@ -138,7 +171,6 @@ function NewProductForm() {
     }
 
     try {
-      // Save multiple images as a comma-separated list
       const finalImageString = imageUrls.join(',');
 
       const { error } = await supabase.from('products').insert([
@@ -156,6 +188,9 @@ function NewProductForm() {
 
       if (error) throw error;
 
+      // Wipe draft since it is successfully saved to Supabase
+      localStorage.removeItem('oaklahome_draft_product');
+
       alert('Product successfully listed!');
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
@@ -165,12 +200,6 @@ function NewProductForm() {
       setLoading(false);
     }
   };
-
-  const categories = [
-    'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
-    'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
-    'Pets', 'Jewelry', 'Something else'
-  ];
 
   if (!mounted) {
     return (
