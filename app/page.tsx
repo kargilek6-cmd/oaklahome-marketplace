@@ -29,7 +29,7 @@ export default function Home() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // Mobile search slide-down
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); 
 
   // OTP MOCK STATES
   const [otpSent, setOtpSent] = useState(false);
@@ -259,11 +259,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       
-      {/* RESPONSIVE HEADER LAYOUT (DO NOT ALTER DESKTOP VIEW) */}
+      {/* RESPONSIVE HEADER LAYOUT */}
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* ================= DESKTOP LEFT SECTION (Hidden on Mobile) ================= */}
+          {/* DESKTOP LEFT SECTION */}
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
@@ -303,9 +303,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ================= MOBILE LEFT SECTION (Only visible on Mobile) ================= */}
+          {/* MOBILE LEFT SECTION */}
           <div className="flex md:hidden items-center space-x-3.5">
-            {/* 3-Lines Hamburger Drawer Button */}
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="text-gray-800 hover:text-gray-950 focus:outline-none p-1 cursor-pointer"
@@ -320,7 +319,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* ================= DESKTOP CENTER SEARCH BAR (Hidden on Mobile) ================= */}
+          {/* DESKTOP CENTER SEARCH BAR */}
           <div className="hidden md:block flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +335,7 @@ export default function Home() {
             />
           </div>
 
-          {/* ================= DESKTOP RIGHT CONTROLS (Hidden on Mobile) ================= */}
+          {/* DESKTOP RIGHT CONTROLS */}
           <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
@@ -410,7 +409,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* ================= MOBILE RIGHT SECTION (Only visible on Mobile) ================= */}
+          {/* MOBILE RIGHT SECTION */}
           <div className="flex md:hidden items-center space-x-4">
             {/* Search Icon button */}
             <button 
@@ -438,7 +437,7 @@ export default function Home() {
 
         </div>
 
-        {/* ================= MOBILE COLLAPSIBLE SEARCH BAR INPUT (Toggled by mobile search icon) ================= */}
+        {/* MOBILE COLLAPSIBLE SEARCH BAR INPUT */}
         {isMobileSearchOpen && (
           <div className="mt-3 relative md:hidden animate-in slide-in-from-top-2 duration-150">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -457,7 +456,7 @@ export default function Home() {
         )}
       </header>
 
-      {/* FAIRE STYLE MOBILE DRAWER (MATCHES SCREENSHOT 4 EXACTLY) */}
+      {/* FAIRE STYLE MOBILE DRAWER */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
           <div 
@@ -466,7 +465,6 @@ export default function Home() {
           />
 
           <div className="relative w-4/5 max-w-xs h-full bg-white flex flex-col justify-between z-50 animate-in slide-in-from-left duration-250 shadow-2xl">
-            {/* Close button (X) */}
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="absolute top-4 right-4 text-white hover:text-neutral-200 text-xl font-bold p-2 focus:outline-none z-50 cursor-pointer"
@@ -475,7 +473,7 @@ export default function Home() {
             </button>
 
             <div className="flex-grow overflow-y-auto">
-              {/* TOP BLOCK (Dark Grey / Black Menu) - Matches Screenshot 4 */}
+              {/* TOP BLOCK (Dark Grey / Black Menu) */}
               <div className="bg-[#1a1a1a] text-white p-6 pt-12 space-y-4">
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="font-serif text-sm tracking-[0.25em] font-black text-neutral-300 block mb-6">
                   OAKLAHOME
@@ -535,7 +533,7 @@ export default function Home() {
                 )}
               </div>
 
-              {/* MIDDLE BLOCK (White background): Trending Collections */}
+              {/* MIDDLE BLOCK: Trending Collections */}
               <div className="p-6 text-left border-b border-gray-100 bg-white">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Trending Collections
@@ -549,7 +547,7 @@ export default function Home() {
                 </ul>
               </div>
 
-              {/* BOTTOM BLOCK (White background): Categories for you */}
+              {/* BOTTOM BLOCK: Categories for you */}
               <div className="p-6 text-left bg-white">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Categories for you
@@ -593,7 +591,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ================= CONDITIONAL BODY LAYOUT (LOGGED OUT VS ANY LOGGED IN USER) ================= */}
+      {/* ================= CONDITIONAL BODY LAYOUT ================= */}
       {!isUserLoggedIn ? (
         <>
           {/* ----------------- LOGGED OUT: STANDARD HERO VIDEO ----------------- */}
@@ -679,35 +677,38 @@ export default function Home() {
                   
                   {products.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      {products.slice(0, 4).map((product) => (
-                        <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
-                          <div>
-                            {/* B2B Route to Product Detail Page PDP! */}
-                            <Link href={`/product/${product.id}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
-                              <img 
-                                src={product.image_url} 
-                                alt="" 
-                                className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
-                              />
-                            </Link>
-                            <div className="mt-2.5">
-                              <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
-                              <p className="text-xs text-gray-500 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                      {products.slice(0, 4).map((product) => {
+                        const firstImage = product.image_url ? product.image_url.split(',')[0] : '';
+                        return (
+                          <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
+                            <div>
+                              {/* B2B Route to Product Detail Page PDP! */}
+                              <Link href={`/product/${product.id}`} className="block w-full h-48 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                                <img 
+                                  src={firstImage} 
+                                  alt="" 
+                                  className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                                />
+                              </Link>
+                              <div className="mt-2.5">
+                                <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                                <p className="text-xs text-gray-500 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                              </div>
                             </div>
+                            
+                            {/* Add to Cart button */}
+                            <button
+                              onClick={() => {
+                                addToCart(product);
+                                alert(`Added "${product.title}" to cart!`);
+                              }}
+                              className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                            >
+                              + Add to Cart
+                            </button>
                           </div>
-                          
-                          {/* Add to Cart button */}
-                          <button
-                            onClick={() => {
-                              addToCart(product);
-                              alert(`Added "${product.title}" to cart!`);
-                            }}
-                            className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
-                          >
-                            + Add to Cart
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-gray-400">No recently viewed items.</p>
@@ -884,94 +885,97 @@ export default function Home() {
           {searchedProducts.length > 0 ? (
             <div className="space-y-16">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {searchedProducts.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
-                  >
-                    <div>
-                      {product.image_url && (
-                        <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
-                          <img 
-                            src={product.image_url} 
-                            alt={product.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </Link>
-                      )}
-                      <div className="p-5">
-                        {isUserLoggedIn ? (
-                          <>
-                            <div className="flex items-baseline space-x-2">
-                              <span className="text-lg font-black text-gray-950">
-                                ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                              </span>
-                              <span className="text-xs text-gray-400 line-through">
-                                MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            </div>
-
-                            <Link href={`/product/${product.id}`} className="block text-base font-semibold text-gray-800 mt-2 line-clamp-2 hover:underline">
-                              {product.title}
-                            </Link>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-baseline mb-3">
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
-                                Pricing Protected 🔒
-                              </span>
-                            </div>
-                            <h3 className="text-base font-semibold text-gray-400 line-clamp-2 blur-[2px] select-none">
-                              {product.title}
-                            </h3>
-                          </>
+                {searchedProducts.map((product) => {
+                  const firstImage = product.image_url ? product.image_url.split(',')[0] : '';
+                  return (
+                    <div 
+                      key={product.id} 
+                      className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
+                    >
+                      <div>
+                        {firstImage && (
+                          <Link href={`/product/${product.id}`} className="relative block w-full h-56 bg-gray-50 cursor-pointer">
+                            <img 
+                              src={firstImage} 
+                              alt={product.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </Link>
                         )}
+                        <div className="p-5">
+                          {isUserLoggedIn ? (
+                            <>
+                              <div className="flex items-baseline space-x-2">
+                                <span className="text-lg font-black text-gray-950">
+                                  ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                                <span className="text-xs text-gray-400 line-through">
+                                  MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
 
-                        <p className="text-gray-500 text-sm mt-1 line-clamp-2">
-                          {product.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-5 pt-0">
-                      <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
-                        <div>
-                          {product.brand_name && (
-                            <Link 
-                              href={`/brand/${encodeURIComponent(product.brand_name)}`}
-                              className="block text-sm font-bold text-gray-950 hover:underline hover:text-blue-600 transition"
-                            >
-                              {product.brand_name}
-                            </Link>
+                              <Link href={`/product/${product.id}`} className="block text-base font-semibold text-gray-800 mt-2 line-clamp-2 hover:underline">
+                                {product.title}
+                              </Link>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-baseline mb-3">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                                  Pricing Protected 🔒
+                                </span>
+                              </div>
+                              <h3 className="text-base font-semibold text-gray-400 line-clamp-2 blur-[2px] select-none">
+                                {product.title}
+                              </h3>
+                            </>
                           )}
-                          <p className="text-xs text-gray-500 mt-1 font-medium">
-                            ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+
+                          <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                            {product.description}
                           </p>
                         </div>
-                        
-                        {isUserLoggedIn ? (
-                          <button
-                            onClick={() => {
-                              addToCart(product);
-                              alert(`Added "${product.title}" to cart!`);
-                            }}
-                            className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
-                          >
-                            + Add to Cart
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openAuthModal('signin')}
-                            className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 cursor-pointer"
-                          >
-                            Sign in to buy
-                          </button>
-                        )}
+                      </div>
+
+                      <div className="p-5 pt-0">
+                        <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
+                          <div>
+                            {product.brand_name && (
+                              <Link 
+                                href={`/brand/${encodeURIComponent(product.brand_name)}`}
+                                className="block text-sm font-bold text-gray-950 hover:underline hover:text-blue-600 transition"
+                              >
+                                {product.brand_name}
+                              </Link>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                              ₹{product.min_order_amount ? product.min_order_amount.toLocaleString('en-IN') : '0'} min
+                            </p>
+                          </div>
+                          
+                          {isUserLoggedIn ? (
+                            <button
+                              onClick={() => {
+                                addToCart(product);
+                                alert(`Added "${product.title}" to cart!`);
+                              }}
+                              className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
+                            >
+                              + Add to Cart
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openAuthModal('signin')}
+                              className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 cursor-pointer"
+                            >
+                              Sign in to buy
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
