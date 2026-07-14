@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
-// Categories array at the top for clean compilation
 const categories = [
   'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
   'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
@@ -38,13 +37,19 @@ function EditProductForm() {
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState('published');
   
-  // MULTIPLE IMAGE STATES & CLICK-AND-DRAG REPOSITIONING
+  // MULTIPLE IMAGE STATES
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [editCoverPosition, setEditCoverPosition] = useState('50'); // Product focal slider (0 to 100)
-  const [isDraggingPosition, setIsDraggingPosition] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [startPosition, setStartPosition] = useState(50);
+
+  // INTERACTIVE CROP MODAL STATES
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [isPanning, setIsPanning] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false); 
@@ -71,7 +76,6 @@ function EditProductForm() {
           setDescription(data.description || '');
           setCategory(data.category || 'Home decor');
           setPrice(data.price ? data.price.toString() : '');
-          setEditCoverPosition(data.image_position || '50');
           setImageUrls(data.image_url ? data.image_url.split(',') : []);
           setStatus(data.status || 'published');
         }
@@ -84,7 +88,7 @@ function EditProductForm() {
     loadActiveProduct();
   }, [urlBrandName, productId]);
 
-  // BEFOREUNLOAD WARNING (Browser exit blocker)
+  // BEFOREUNLOAD WARNING
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const hasChanges = title || description || price || imageUrls.length > 0;
@@ -117,15 +121,82 @@ function EditProductForm() {
     });
   };
 
-  // MULTI-IMAGE UPLOADER
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // FILE SELECTOR INTERCEPT
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isValidResolution = await validateImageResolution(file);
-    if (!isValidResolution) return;
+    setSelectedFile(file);
+    setCropSource(URL.createObjectURL(file));
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+    setIsCropModalOpen(true);
+    e.target.value = '';
+  };
 
+  // CROP PANNING HANDLERS
+  const handlePanMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPanning(true);
+    setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
+  };
+
+  const handlePanMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPanning) return;
+    setPanX(e.clientX - dragStart.x);
+    setPanY(e.clientY - dragStart.y);
+  };
+
+  const handlePanMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  // APPLY CROP & CONVERT TO 2048 x 2048 PX SQUARE IMAGE
+  const handleApplyCropAndUpload = () => {
+    if (!selectedFile || !cropSource) return;
     setUploading(true);
+    setIsCropModalOpen(false);
+
+    const img = new Image();
+    img.src = cropSource;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2048;
+      canvas.height = 2048;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setUploading(false);
+        return;
+      }
+
+      const NW = img.naturalWidth;
+      const NH = img.naturalHeight;
+      const minSide = Math.min(NW, NH);
+
+      const sw = minSide / zoom;
+      const sh = minSide / zoom;
+      const scaleFactor = minSide / 320; 
+
+      const cx = NW / 2;
+      const cy = NH / 2;
+      const sx = cx - sw / 2 - (panX * scaleFactor);
+      const sy = cy - sh / 2 - (panY * scaleFactor);
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 2048, 2048);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setUploading(false);
+          return;
+        }
+        const croppedFile = new File([blob], selectedFile.name, { type: 'image/jpeg' });
+        await handleUploadToSupabase(croppedFile);
+      }, 'image/jpeg', 0.95);
+    };
+  };
+
+  const handleUploadToSupabase = async (file: File) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -148,6 +219,8 @@ function EditProductForm() {
       alert('Failed to upload image: ' + err.message);
     } finally {
       setUploading(false);
+      setSelectedFile(null);
+      setCropSource(null);
     }
   };
 
@@ -171,28 +244,6 @@ function EditProductForm() {
     updated.splice(index, 0, draggedItem);
     setImageUrls(updated);
     setDraggedIndex(null);
-  };
-
-  // CLICK-AND-DRAG PRODUCT IMAGE POSITION DETECTOR HANDLERS
-  const handlePositionMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDraggingPosition(true);
-    setStartY(e.pageY);
-    setStartPosition(parseFloat(editCoverPosition));
-  };
-
-  const handlePositionMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingPosition) return;
-    const { height } = e.currentTarget.getBoundingClientRect();
-    const deltaY = e.pageY - startY;
-    const deltaPercentage = (deltaY / height) * 100;
-    
-    let newPosition = Math.max(0, Math.min(100, Math.round(startPosition + deltaPercentage)));
-    setEditCoverPosition(newPosition.toString());
-  };
-
-  const handlePositionMouseUp = () => {
-    setIsDraggingPosition(false);
   };
 
   const handleCancelClick = () => {
@@ -226,7 +277,7 @@ function EditProductForm() {
           category,
           price: parseFloat(price),
           image_url: finalImageString || null,
-          image_position: editCoverPosition,
+          image_position: '50', // Set default center: crop aligns it natively!
           status: status,
         })
         .eq('id', productId);
@@ -251,10 +302,10 @@ function EditProductForm() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-6">
+    <main className="min-h-screen bg-gray-50 py-12 px-6 text-left">
       <div className="max-w-4xl mx-auto animate-in fade-in duration-200">
         
-        {/* STREAMLINED HEADER (REMOVED DUMMY "NEW PRODUCT" TITLE) */}
+        {/* HEADER */}
         <header className="mb-8 flex justify-between items-center border-b border-gray-200 pb-4 text-left">
           <div>
             <button onClick={handleCancelClick} className="text-sm font-bold text-gray-500 hover:text-gray-900 cursor-pointer">
@@ -319,7 +370,7 @@ function EditProductForm() {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
+                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
                   >
                     {categories.map((catName) => (
                       <option key={catName} value={catName}>{catName}</option>
@@ -340,52 +391,25 @@ function EditProductForm() {
             </div>
           </section>
 
-          {/* ================= SECTION 2: REPOSITION PREVIEW & PHOTO GRID ================= */}
+          {/* ================= SECTION 2: SINGLE-BUTTON GALLERY ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-1">Images & videos</h2>
-            <p className="text-xs text-gray-400 mb-6">Drag and drop thumbnails to rearrange. Click and Drag up/down directly on your cover preview below to center your product.</p>
-
-            {imageUrls.length > 0 && (
-              <div className="space-y-2 mb-6 animate-in slide-in-from-top-2 duration-150">
-                <label className="block text-xs font-bold text-gray-700 uppercase">
-                  Cover Photo Focal Alignment Position
-                </label>
-                <div 
-                  onMouseDown={handlePositionMouseDown}
-                  onMouseMove={handlePositionMouseMove}
-                  onMouseUp={handlePositionMouseUp}
-                  onMouseLeave={handlePositionMouseUp}
-                  className="w-full max-w-sm aspect-square border border-gray-200 rounded-xl overflow-hidden relative cursor-ns-resize bg-gray-50/50 select-none group"
-                  title="Drag Up/Down to Center"
-                >
-                  <img 
-                    src={imageUrls[0]} 
-                    alt="Product preview" 
-                    className="w-full h-full object-cover pointer-events-none" 
-                    style={{ objectPosition: `50% ${editCoverPosition}%` }}
-                  />
-                  <div className="absolute inset-0 bg-black/40 text-white font-bold text-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-150 pointer-events-none gap-2">
-                    <span className="text-xl">↕️</span>
-                    <span>Drag Up/Down to Center Product</span>
-                    <span className="bg-gray-900/80 px-2.5 py-1 rounded text-[10px] mt-1 font-semibold">focal alignment: {editCoverPosition}%</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            <p className="text-xs text-gray-400 mb-6">Drag and drop thumbnails to rearrange. The first image will be your main cover photo.</p>
 
             <div className="flex flex-wrap gap-4 items-center">
+              
               {/* Single Upload Button */}
               {imageUrls.length < 8 && (
                 <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 w-36 h-36 relative transition duration-150">
                   {uploading ? (
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider animate-pulse">Uploading...</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider animate-pulse">Cropping...</p>
                   ) : (
                     <div className="space-y-2">
                       <span className="text-xl">📤</span>
                       <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Add Photo</p>
-                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[8px] px-2.5 py-1.5 rounded cursor-pointer uppercase tracking-widest transition duration-150">
+                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[8px] px-2 py-1 rounded cursor-pointer uppercase tracking-widest transition duration-150">
                         Upload
-                        <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                        <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                       </label>
                     </div>
                   )}
@@ -428,6 +452,7 @@ function EditProductForm() {
                   <span className="text-lg">🖼️</span>
                 </div>
               ))}
+
             </div>
           </section>
 
@@ -484,6 +509,94 @@ function EditProductForm() {
 
         </form>
       </div>
+
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL ================= */}
+      {isCropModalOpen && cropSource && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
+          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center">
+            <button 
+              onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2 text-left">
+              Adjust & Center Photo
+            </h3>
+            <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
+
+            {/* Interactive Crop Viewport Frame */}
+            <div 
+              onMouseDown={handlePanMouseDown}
+              onMouseMove={handlePanMouseMove}
+              onMouseUp={handlePanMouseUp}
+              onMouseLeave={handlePanMouseUp}
+              className="w-[320px] h-[320px] mx-auto border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none"
+            >
+              <img 
+                src={cropSource} 
+                alt="" 
+                className="absolute pointer-events-none max-w-none transition-transform duration-75 origin-center"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                }}
+              />
+              <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
+                <div className="border-b border-white/20 h-1/3 w-full" />
+                <div className="border-b border-white/20 h-1/3 w-full" />
+              </div>
+              <div className="absolute inset-0 pointer-events-none flex justify-between">
+                <div className="border-r border-white/20 w-1/3 h-full" />
+                <div className="border-r border-white/20 w-1/3 h-full" />
+              </div>
+            </div>
+
+            {/* Zoom Slider */}
+            <div className="mt-6 space-y-2">
+              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <span>Zoom Scale</span>
+                <span>{zoom.toFixed(1)}x</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 cursor-pointer select-none px-2 py-1">-</button>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="3" 
+                  step="0.1"
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="w-full accent-gray-950 h-1.5 bg-gray-100 rounded-lg cursor-pointer"
+                />
+                <button type="button" onClick={() => setZoom(Math.min(3, zoom + 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 cursor-pointer select-none px-2 py-1">+</button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+              <button
+                type="button"
+                onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
+                className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-2.5 px-4 rounded-lg text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCropAndUpload}
+                className="bg-gray-950 hover:bg-gray-800 text-white font-black py-2.5 px-5 rounded-lg text-xs transition shadow cursor-pointer"
+              >
+                Apply & Upload
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </main>
   );
 }
