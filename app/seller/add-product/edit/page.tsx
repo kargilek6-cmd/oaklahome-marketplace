@@ -45,6 +45,7 @@ function EditProductForm() {
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
+  const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait'); // Normalized scale
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -127,15 +128,26 @@ function EditProductForm() {
     if (!file) return;
 
     setSelectedFile(file);
-    setCropSource(URL.createObjectURL(file));
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
-    setIsCropModalOpen(true);
+    const src = URL.createObjectURL(file);
+    setCropSource(src);
+
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      if (img.naturalWidth > img.naturalHeight) {
+        setImageAspectRatio('landscape');
+      } else {
+        setImageAspectRatio('portrait');
+      }
+      setZoom(1);
+      setPanX(0);
+      setPanY(0);
+      setIsCropModalOpen(true);
+    };
     e.target.value = '';
   };
 
-  // POINTER CAPTURE PANNING HANDLERS
+  // POINTER CAPTURE PANNING HANDLERS (Locks dragging and blocks browser selection)
   const handlePanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId); // Captures pointer
@@ -561,11 +573,10 @@ function EditProductForm() {
                 alt="" 
                 className="absolute pointer-events-none max-w-none origin-center" 
                 style={{
-                  minWidth: '100%',
-                  minHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'cover',
+                  width: imageAspectRatio === 'landscape' ? 'auto' : '320px',
+                  height: imageAspectRatio === 'portrait' ? 'auto' : '320px',
+                  minWidth: imageAspectRatio === 'landscape' ? '320px' : 'none',
+                  minHeight: imageAspectRatio === 'portrait' ? '320px' : 'none',
                   transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
                 }}
               />

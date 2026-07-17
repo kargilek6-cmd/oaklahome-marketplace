@@ -41,10 +41,11 @@ function NewProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Boundary Limits!)
+  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Edge Boundaries!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
+  const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait'); // Normalized scale
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -107,17 +108,29 @@ function NewProductForm() {
     };
   }, [title, description, price, imageUrls]);
 
-  // IMAGE FILE SELECTION (Launches Crop Modal first!)
+  // IMAGE FILE SELECTION (Launches Crop Modal & Normalizes Dimensions!)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
-    setCropSource(URL.createObjectURL(file));
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
-    setIsCropModalOpen(true);
+    const src = URL.createObjectURL(file);
+    setCropSource(src);
+
+    // Read image dimensions before opening modal to set ratio
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      if (img.naturalWidth > img.naturalHeight) {
+        setImageAspectRatio('landscape');
+      } else {
+        setImageAspectRatio('portrait');
+      }
+      setZoom(1);
+      setPanX(0);
+      setPanY(0);
+      setIsCropModalOpen(true);
+    };
 
     e.target.value = '';
   };
@@ -261,6 +274,7 @@ function NewProductForm() {
     setDraggedIndex(null);
   };
 
+  // Confirm cancel action (Safe local routing alert)
   const handleCancelClick = () => {
     const hasChanges = title || description || price || imageUrls.length > 0;
     if (hasChanges) {
@@ -457,7 +471,7 @@ function NewProductForm() {
                 </div>
               ))}
 
-              {/* Empty state slots */}
+              {/* Empty state slots (Displays up to 8 total items) */}
               {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
                 <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
                   <span className="text-lg">🖼️</span>
@@ -537,7 +551,7 @@ function NewProductForm() {
             </h3>
             <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
 
-            {/* Interactive Crop Viewport Frame (Locks dragging to prevent exposing white background!) */}
+            {/* Interactive Crop Viewport Frame (Pointer Events lock drag ghost and selection!) */}
             <div 
               onPointerDown={handlePanPointerDown}
               onPointerMove={handlePanPointerMove}
@@ -550,11 +564,10 @@ function NewProductForm() {
                 alt="" 
                 className="absolute pointer-events-none max-w-none left-1/2 top-1/2" // Centers image by default
                 style={{
-                  minWidth: '100%',
-                  minHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'cover',
+                  width: imageAspectRatio === 'landscape' ? 'auto' : '320px',
+                  height: imageAspectRatio === 'portrait' ? 'auto' : '320px',
+                  minWidth: imageAspectRatio === 'landscape' ? '320px' : 'none',
+                  minHeight: imageAspectRatio === 'portrait' ? '320px' : 'none',
                   transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
                 }}
               />
