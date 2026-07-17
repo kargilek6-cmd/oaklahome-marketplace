@@ -313,6 +313,7 @@ export default function Home() {
 
           {/* MOBILE LEFT SECTION */}
           <div className="flex md:hidden items-center space-x-3.5">
+            {/* 3-Lines Hamburger Drawer Button */}
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="text-gray-800 hover:text-gray-950 focus:outline-none p-1 cursor-pointer"
@@ -343,57 +344,72 @@ export default function Home() {
             />
           </div>
 
-          {/* DESKTOP RIGHT CONTROLS */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+          {/* RIGHT NAVIGATION CONTROLS (UNIFIED PROFILE VIEW & ROLE SEPARATION) */}
+          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
-                {user.role === 'SELLER' ? (
-                  <Link 
-                    href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
-                    className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 shadow"
+                {/* ROLE-AWARE SVG AVATAR DROPDOWN ICON */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition cursor-pointer"
+                    title="My Account"
                   >
-                    Go to Portal 📦
-                  </Link>
-                ) : (
-                  <div className="relative">
-                    <button 
-                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                      className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition cursor-pointer"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </button>
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </button>
 
-                    {isUserDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-                        <div className="absolute right-0 mt-3 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
-                          <div className="px-4 py-2 border-b border-gray-100 mb-1">
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Retailer ID</p>
-                            <p className="text-xs font-black text-gray-950 truncate mt-0.5">
-                              {user.email ? user.email.split('@')[0] : user.phone}
-                            </p>
-                          </div>
-                          <Link href="/orders" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
-                            Orders
-                          </Link>
-                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Invoices (Locked)</span>
-                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
-                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
-                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
-                          <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Settings (Locked)</span>
-                          <button 
-                            onClick={() => { logout(); setIsUserDropdownOpen(false); }}
-                            className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
-                          >
-                            Sign out
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
+                  {isUserDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
+                      <div className="absolute right-0 mt-3 w-52 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
+                        {user.role === 'SELLER' ? (
+                          /* DYNAMIC SELLER DROPDOWN SHORTCUTS (NEW BATCH 10!) */
+                          <>
+                            <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Wholesaler</p>
+                              <p className="text-sm font-black text-gray-950 truncate mt-0.5">{user.brandName}</p>
+                              <p className="text-[10px] text-gray-400 truncate font-semibold mt-0.5">{user.email}</p>
+                            </div>
+                            <Link href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`} onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                              Portal Dashboard 📦
+                            </Link>
+                            <Link href={`/brand/${encodeURIComponent(user.brandName || '')}`} onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                              View Storefront 👁️
+                            </Link>
+                            <Link href={`/brand/${encodeURIComponent(user.brandName || '')}?edit=true`} onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                              Edit Store Details ✏️
+                            </Link>
+                          </>
+                        ) : (
+                          /* DYNAMIC BUYER RETAILER DROPDOWN */
+                          <>
+                            <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Retailer ID</p>
+                              <p className="text-xs font-black text-gray-950 truncate mt-0.5">
+                                {user.email ? user.email.split('@')[0] : user.phone}
+                              </p>
+                            </div>
+                            <Link href="/orders" onClick={() => setIsUserDropdownOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 font-bold">
+                              My Orders 📋
+                            </Link>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Invoices (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
+                            <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => { logout(); setIsUserDropdownOpen(false); }}
+                          className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -403,42 +419,47 @@ export default function Home() {
               </>
             )}
 
-            {/* Desktop Cart */}
-            <Link 
-              href="/cart" 
-              className="bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition flex items-center justify-center relative cursor-pointer"
-            >
-              <span>🛒</span>
-              {totalCartItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] font-black shadow-md">
-                  {totalCartItems}
-                </span>
-              )}
-            </Link>
-          </div>
+            {/* CART BUTTON SEPARATOR: Automatically hidden on mobile & desktop if Wholesaler seller is logged in! */}
+            {(!mounted || !user || user.role !== 'SELLER') && (
+              <>
+                {/* Desktop Cart */}
+                <Link 
+                  href="/cart" 
+                  className="hidden md:flex bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition items-center justify-center relative cursor-pointer"
+                >
+                  <span>🛒</span>
+                  {totalCartItems > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] font-black shadow-md">
+                      {totalCartItems}
+                    </span>
+                  )}
+                </Link>
 
-          {/* MOBILE RIGHT SECTION */}
-          <div className="flex md:hidden items-center space-x-4">
+                {/* Mobile Cart */}
+                <Link 
+                  href="/cart" 
+                  className="flex md:hidden bg-gray-50 text-gray-700 border border-gray-100 p-2 rounded-full transition items-center justify-center relative cursor-pointer"
+                >
+                  <span className="text-sm">🛒</span>
+                  {totalCartItems > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-4.5 w-4.5 flex items-center justify-center text-[9px] font-black shadow-md animate-in zoom-in">
+                      {totalCartItems}
+                    </span>
+                  )}
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Search button triggers */}
             <button 
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-              className="text-gray-700 hover:text-gray-950 p-1 cursor-pointer"
+              className="flex md:hidden text-gray-700 hover:text-gray-950 p-1 cursor-pointer"
             >
               <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
 
-            <Link 
-              href="/cart" 
-              className="bg-gray-50 text-gray-700 border border-gray-100 p-2 rounded-full transition flex items-center justify-center relative cursor-pointer"
-            >
-              <span className="text-sm">🛒</span>
-              {totalCartItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full h-4.5 w-4.5 flex items-center justify-center text-[9px] font-black shadow-md animate-in zoom-in">
-                  {totalCartItems}
-                </span>
-              )}
-            </Link>
           </div>
 
         </div>
@@ -1017,7 +1038,7 @@ export default function Home() {
                                   });
                                   alert(`Added "${product.title}" to cart!`);
                                 }}
-                                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
+                                className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
                               >
                                 + Add to Cart
                               </button>
