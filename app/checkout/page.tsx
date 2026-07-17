@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext'; 
 import { supabase } from '../../lib/supabase';
 import Link from 'next/link';
 
@@ -23,6 +24,7 @@ function CheckoutForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { cart, removeFromCart } = useCart();
+  const { user } = useAuth(); 
 
   const brandName = searchParams.get('brand') || '';
   const decodedBrandName = decodeURIComponent(brandName);
@@ -40,7 +42,14 @@ function CheckoutForm() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (user) {
+      if (user.firstName) {
+        setBuyerName(user.firstName);
+      } else if (user.email) {
+        setBuyerName(user.email.split('@')[0]);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (mounted && brandItems.length === 0 && !orderConfirmed) {
@@ -52,8 +61,15 @@ function CheckoutForm() {
     e.preventDefault();
     setLoading(true);
 
-    if (!buyerName || !shippingAddress) {
-      alert('Please fill out all shipping details.');
+    // STRICT INPUT VALIDATION
+    if (!buyerName || buyerName.trim().length < 3) {
+      alert('Please enter a valid store / owner name (at least 3 characters).');
+      setLoading(false);
+      return;
+    }
+
+    if (!shippingAddress || shippingAddress.trim().length < 15) {
+      alert('Please enter a complete delivery address (at least 15 characters, including city/zip).');
       setLoading(false);
       return;
     }
@@ -66,6 +82,7 @@ function CheckoutForm() {
             brand_name: decodedBrandName,
             total_amount: brandSubtotal,
             buyer_name: buyerName,
+            buyer_email: user?.email || 'anonymous_buyer', // Link session automatically!
             shipping_address: shippingAddress,
             status: 'pending',
           },
@@ -112,7 +129,7 @@ function CheckoutForm() {
 
   if (orderConfirmed) {
     return (
-      <main className="min-h-screen bg-gray-50 py-12 px-6 flex justify-center items-center">
+      <main className="min-h-screen bg-gray-50 py-12 px-6 flex justify-center items-center text-center">
         <div className="max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center">
           <span className="text-6xl">📦</span>
           <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-4">Order Confirmed!</h1>
@@ -152,7 +169,7 @@ function CheckoutForm() {
     <main className="min-h-screen bg-gray-50 py-12 px-6">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-          <header className="mb-8">
+          <header className="mb-8 text-left">
             <Link href="/cart" className="text-sm font-bold text-blue-600 hover:underline">
               ← Back to Cart
             </Link>
@@ -160,7 +177,7 @@ function CheckoutForm() {
             <p className="text-gray-500 mt-1">Provide your retail store delivery details.</p>
           </header>
 
-          <form onSubmit={handlePlaceOrder} className="space-y-6">
+          <form onSubmit={handlePlaceOrder} className="space-y-6 text-left">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Store / Buyer Name *</label>
               <input
@@ -177,7 +194,7 @@ function CheckoutForm() {
               <label className="block text-sm font-bold text-gray-700 mb-2">Shipping Address *</label>
               <textarea
                 rows={4}
-                placeholder="Enter complete shipping address..."
+                placeholder="Enter complete shipping address (Street, City, State, ZIP)..."
                 value={shippingAddress}
                 onChange={(e) => setShippingAddress(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -188,14 +205,14 @@ function CheckoutForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-xl transition duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-xl transition duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? 'Processing Order...' : `Confirm Purchase (₹${brandSubtotal.toLocaleString('en-IN')})`}
             </button>
           </form>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm h-fit">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm h-fit text-left">
           <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4">
             Items from {decodedBrandName}
           </h3>

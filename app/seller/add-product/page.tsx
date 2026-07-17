@@ -101,7 +101,7 @@ function AddProductForm() {
     }
 
     try {
-      // Optimistic Local State Update
+      // Optimistic Local State Update for snappiness
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, price: parsedPrice } : p))
       );
@@ -138,7 +138,7 @@ function AddProductForm() {
     <main className="min-h-screen bg-gray-50 py-12 px-6">
       <div className="max-w-7xl mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         
-        {/* HEADER WITH VIEWS LINK */}
+        {/* HEADER WITH VIEWS LINK & BLACK ADD PRODUCTS BUTTON */}
         <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-gray-100 pb-6 gap-4 text-left">
           <div>
             <h2 className="text-3xl font-black text-gray-950 tracking-tight">Products</h2>
@@ -204,9 +204,9 @@ function AddProductForm() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="pb-4 pl-2 w-12"><input type="checkbox" className="rounded border-gray-300 text-gray-900 focus:ring-gray-950 h-4 w-4" /></th>
+                  <th className="pb-4 pl-2 w-12"><input type="checkbox" className="rounded border-gray-300 text-gray-950 h-4 w-4" /></th>
                   <th className="pb-4">Product</th>
-                  <th className="pb-4">Wholesale Price (Click to Edit)</th> {/* Price inline indicator */}
+                  <th className="pb-4">Wholesale Price (Click to Edit)</th> 
                   <th className="pb-4 text-center">Status</th>
                   <th className="pb-4 text-center">Actions</th> 
                 </tr>
@@ -217,10 +217,10 @@ function AddProductForm() {
                   return (
                     <tr key={product.id} className="group hover:bg-gray-50/50 transition">
                       <td className="py-4 pl-2">
-                        <input type="checkbox" className="rounded border-gray-300 text-gray-900 focus:ring-gray-950 h-4 w-4" />
+                        <input type="checkbox" className="rounded border-gray-300 text-gray-950 h-4 w-4" />
                       </td>
                       
-                      {/* Clickable Product Name (REPLACES STEP 6 POPUP MODAL!) */}
+                      {/* Clickable Product Name leading to the new Edit Page */}
                       <td className="py-4 flex items-center space-x-4">
                         {coverImage ? (
                           <Link 
@@ -284,7 +284,7 @@ function AddProductForm() {
                         </button>
                       </td>
 
-                      {/* Edit row button routing directly to new layout details */}
+                      {/* Edit row button routing directly to new edit page */}
                       <td className="py-4 text-center">
                         <Link
                           href={`/seller/add-product/edit?brand=${encodeURIComponent(brandName)}&id=${product.id}`}

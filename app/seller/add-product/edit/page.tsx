@@ -5,10 +5,18 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
+// Move categories and variant options to the top of the file
 const categories = [
   'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
   'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
   'Pets', 'Jewelry', 'Something else'
+];
+
+const availableFormats = ['Art Paper', 'Canvas', 'Glass', 'Metal'];
+
+const availableSizes = [
+  '8×10in', '11×14in', '16×20in', '18×24in', '24×36in', 
+  '36×48in', '48×64in', '52×70in', '60×80in'
 ];
 
 export default function EditProductPage() {
@@ -41,11 +49,16 @@ function EditProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // PRODUCT VARIANTS STATES (NEW BATCH 11!)
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+
   // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Edge Boundaries!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
   const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait'); // Normalized scale
+  const [imageDimensions, setImageDimensions] = useState({ width: 320, height: 320 }); // Un-zoomed rendered dimensions
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -79,6 +92,10 @@ function EditProductForm() {
           setPrice(data.price ? data.price.toString() : '');
           setImageUrls(data.image_url ? data.image_url.split(',') : []);
           setStatus(data.status || 'published');
+          
+          // Pre-fill selected variants split lists (NEW BATCH 11!)
+          setSelectedFormats(data.formats ? data.formats.split(',') : []);
+          setSelectedSizes(data.sizes ? data.sizes.split(',') : []);
         }
       } catch (e) {
         console.error('Failed to fetch existing product details:', e);
@@ -105,24 +122,7 @@ function EditProductForm() {
     };
   }, [title, description, price, imageUrls]);
 
-  // IMAGE RESOLUTION CHECKER (2048x2048px minimum)
-  const validateImageResolution = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
-        if (img.width < 2048 || img.height < 2048) {
-          alert(`Image resolution is too low (${img.width} x ${img.height} px).\n\nProduct images must be 2048 x 2048 pixels or higher to ensure high-quality listings on Oaklahome.`);
-          resolve(false);
-        } else {
-          resolve(true);
-        }
-      };
-    });
-  };
-
-  // FILE SELECTOR INTERCEPT
+  // IMAGE FILE SELECTION (Launches Crop Modal & Normalizes Dimensions!)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -134,16 +134,27 @@ function EditProductForm() {
     const img = new Image();
     img.src = src;
     img.onload = () => {
-      if (img.naturalWidth > img.naturalHeight) {
-        setImageAspectRatio('landscape');
+      const NW = img.naturalWidth;
+      const NH = img.naturalHeight;
+      
+      let rw = 320;
+      let rh = 320;
+      if (NW >= NH) {
+        rw = 320;
+        rh = 320 * (NH / NW);
       } else {
-        setImageAspectRatio('portrait');
+        rh = 320;
+        rw = 320 * (NW / NH);
       }
+
+      setImageDimensions({ width: rw, height: rh });
+      setImageAspectRatio(NW > NH ? 'landscape' : 'portrait');
       setZoom(1);
       setPanX(0);
       setPanY(0);
       setIsCropModalOpen(true);
     };
+
     e.target.value = '';
   };
 
@@ -158,18 +169,12 @@ function EditProductForm() {
   // BOUNDARY CONTROL DRAGGING (Strictly caps pan offsets to prevent exposing white space)
   const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
-    
-    const imgElement = e.currentTarget.querySelector('img');
-    if (!imgElement) return;
 
-    const containerRect = e.currentTarget.getBoundingClientRect();
-    const imgRect = imgElement.getBoundingClientRect();
+    const currentWidth = imageDimensions.width * zoom;
+    const currentHeight = imageDimensions.height * zoom;
 
-    const extraX = imgRect.width - containerRect.width;
-    const extraY = imgRect.height - containerRect.height;
-
-    const maxPanX = Math.max(0, extraX / 2);
-    const maxPanY = Math.max(0, extraY / 2);
+    const maxPanX = Math.max(0, (currentWidth - 320) / 2);
+    const maxPanY = Math.max(0, (currentHeight - 320) / 2);
 
     const rawPanX = e.clientX - dragStart.x;
     const rawPanY = e.clientY - dragStart.y;
@@ -280,6 +285,19 @@ function EditProductForm() {
     setDraggedIndex(null);
   };
 
+  // TOGGLE MULTI-SELECT VARIANTS HANDLERS
+  const handleFormatToggle = (format: string) => {
+    setSelectedFormats((prev) =>
+      prev.includes(format) ? prev.filter((f) => f !== format) : [...prev, format]
+    );
+  };
+
+  const handleSizeToggle = (size: string) => {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+    );
+  };
+
   const handleCancelClick = () => {
     const hasChanges = title || description || price || imageUrls.length > 0;
     if (hasChanges) {
@@ -301,6 +319,8 @@ function EditProductForm() {
 
     try {
       const finalImageString = imageUrls.join(',');
+      const finalFormatsString = selectedFormats.join(',');
+      const finalSizesString = selectedSizes.join(',');
 
       // Run UPDATE query to overwrite existing product listing
       const { error } = await supabase
@@ -311,7 +331,8 @@ function EditProductForm() {
           category,
           price: parseFloat(price),
           image_url: finalImageString || null,
-          image_position: '50', 
+          formats: finalFormatsString || '', // Save variants text columns
+          sizes: finalSizesString || '',
           status: status,
         })
         .eq('id', productId);
@@ -327,14 +348,6 @@ function EditProductForm() {
     }
   };
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <p className="text-gray-400 font-medium">Loading form...</p>
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6 text-left">
       <div className="max-w-4xl mx-auto animate-in fade-in duration-200">
@@ -345,6 +358,7 @@ function EditProductForm() {
             <button onClick={handleCancelClick} className="text-sm font-bold text-gray-500 hover:text-gray-900 cursor-pointer">
               ← Products
             </button>
+            <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-1">Product Details</h1>
           </div>
           <div className="flex space-x-4">
             <button
@@ -377,6 +391,7 @@ function EditProductForm() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Name</label>
                   <input
                     type="text"
+                    placeholder="Give your product a clear, concise name."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -387,6 +402,7 @@ function EditProductForm() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Description</label>
                   <textarea
                     rows={4}
+                    placeholder="Describe the product materials, story, or details..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -478,7 +494,7 @@ function EditProductForm() {
                 </div>
               ))}
 
-              {/* Empty slots */}
+              {/* Empty state slots (Displays up to 8 total items) */}
               {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
                 <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
                   <span className="text-lg">🖼️</span>
@@ -488,7 +504,65 @@ function EditProductForm() {
             </div>
           </section>
 
-          {/* ================= SECTION 3: PRICING & ORDER RULES ================= */}
+          {/* ================= NEW SECTION 3: PRODUCT VARIANTS SELECTION (BATCH 11!) ================= */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-950 mb-2">Product Variants (Painting Categories)</h2>
+            <p className="text-xs text-gray-400 mb-6">Select which materials and sizes are available for your wholesale buyers.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+              
+              {/* Formats Variants Multi-selector Checkbox */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Formats</h3>
+                <div className="grid grid-cols-2 gap-3.5">
+                  {availableFormats.map((format) => {
+                    const isChecked = selectedFormats.includes(format);
+                    return (
+                      <button
+                        key={format}
+                        type="button"
+                        onClick={() => handleFormatToggle(format)}
+                        className={`text-left border px-4 py-3 rounded-xl font-bold text-xs tracking-wide transition ${
+                          isChecked 
+                            ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
+                        }`}
+                      >
+                        {isChecked ? '✅ ' : '⬜ '} {format}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sizes Variants Multi-selector Checkbox */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Sizes</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {availableSizes.map((size) => {
+                    const isChecked = selectedSizes.includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleSizeToggle(size)}
+                        className={`text-center border py-2.5 rounded-xl font-bold text-[10px] tracking-wide transition ${
+                          isChecked 
+                            ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* ================= SECTION 4: PRICING & ORDER RULES ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Pricing & Order Rules</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -542,7 +616,7 @@ function EditProductForm() {
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE & EDGE BOUNDARIES!) ================= */}
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center text-left">
@@ -558,7 +632,7 @@ function EditProductForm() {
             </h3>
             <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
 
-            {/* Interactive Crop Viewport Frame (Pointer Events lock drag ghost and selection!) */}
+            {/* Interactive Crop Viewport Frame */}
             <div 
               onPointerDown={handlePanPointerDown}
               onPointerMove={handlePanPointerMove}

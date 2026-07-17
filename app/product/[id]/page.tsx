@@ -14,10 +14,21 @@ export default function ProductDetailPage() {
   const { addToCart } = useCart();
 
   const [product, setProduct] = useState<any>(null);
+  const [brandMin, setBrandMin] = useState<number>(0); 
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'materials' | 'shipping'>('description');
   
+  // Gallery state holding list of all uploaded product photos
+  const [images, setImages] = useState<string[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // INTERACTIVE B2B VARIANT STATES (NEW BATCH 11!)
+  const [availableFormats, setAvailableFormats] = useState<string[]>([]);
+  const [availableSizes, setAvailableSizes] = useState<string[]>([]);
+  const [selectedFormat, setSelectedFormat] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
+
   // Hover Magnifier Coordinates
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({ display: 'none' });
 
@@ -33,6 +44,29 @@ export default function ProductDetailPage() {
 
         if (error) throw error;
         setProduct(data);
+
+        if (data) {
+          setImages(data.image_url ? data.image_url.split(',') : []);
+          
+          // Parse format and size lists from database (NEW BATCH 11!)
+          const formList = data.formats ? data.formats.split(',') : [];
+          const sizeList = data.sizes ? data.sizes.split(',') : [];
+          setAvailableFormats(formList);
+          setAvailableSizes(sizeList);
+
+          // Pre-select first options on load
+          if (formList.length > 0) setSelectedFormat(formList[0]);
+          if (sizeList.length > 0) setSelectedSize(sizeList[0]);
+
+          // Fetch parent Brand details to fetch its global Minimum Order Limit
+          const { data: bData } = await supabase
+            .from('brands')
+            .select('min_order_amount')
+            .eq('brand_name', data.brand_name)
+            .maybeSingle();
+
+          setBrandMin(bData?.min_order_amount || 0);
+        }
       } catch (err) {
         console.error('Failed to load product details:', err);
       } finally {
@@ -49,7 +83,7 @@ export default function ProductDetailPage() {
     const y = ((e.pageY - top - window.scrollY) / height) * 100;
     setZoomStyle({
       display: 'block',
-      backgroundImage: `url(${product?.image_url})`,
+      backgroundImage: `url(${images[activeImageIndex]})`,
       backgroundPosition: `${x}% ${y}%`,
       backgroundSize: '250%'
     });
@@ -60,6 +94,7 @@ export default function ProductDetailPage() {
   };
 
   const isUserLoggedIn = mounted && user !== null;
+  const isBrandOwner = mounted && user?.role === 'SELLER' && user?.brandName === product?.brand_name;
 
   if (!mounted || loading) {
     return (
@@ -82,7 +117,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const msrpPrice = product.price ? product.price * 2 : 0;
+  const activePhoto = images[activeImageIndex] || '';
   const totalPrice = product.price ? product.price * quantity : 0;
 
   // Estimated delivery range 6-9 days out
@@ -111,36 +146,41 @@ export default function ProductDetailPage() {
         {/* Dynamic Split Screen Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
-          {/* ================= LEFT SIDE: MEDIA GALLERY WITH HOVER ZOOM ================= */}
+          {/* ================= LEFT SIDE: DYNAMIC MULTI-IMAGE GALLERY WITH HOVER ZOOM ================= */}
           <div className="flex gap-4">
             
-            {/* Left vertical dummy thumbnail strip */}
+            {/* Left vertical thumbnail strip */}
             <div className="flex flex-col space-y-3 w-16 flex-shrink-0">
-              {[...Array(4)].map((_, index) => (
-                <div 
+              {images.map((url, index) => (
+                <button 
                   key={index}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border cursor-pointer transition ${
-                    index === 0 ? 'border-gray-900 shadow-sm' : 'border-gray-200 hover:border-gray-400'
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border transition cursor-pointer ${
+                    activeImageIndex === index ? 'border-gray-900 shadow-sm ring-1 ring-gray-900' : 'border-gray-200 hover:border-gray-400'
                   }`}
                 >
-                  <img src={product.image_url} alt="" className="w-full h-full object-cover" />
-                </div>
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
               ))}
             </div>
 
-            {/* Main Interactive Product Image Container */}
+            {/* Main Interactive Product Image Container (Perfect Square) */}
             <div 
-              className="flex-1 h-[500px] border border-gray-150 rounded-2xl overflow-hidden bg-gray-50/50 relative cursor-zoom-in"
+              className="flex-1 aspect-square border border-gray-150 rounded-2xl overflow-hidden bg-gray-50/50 relative cursor-zoom-in"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
-              <img 
-                src={product.image_url} 
-                alt={product.title} 
-                className="w-full h-full object-cover"
-              />
+              {activePhoto ? (
+                <img 
+                  src={activePhoto} 
+                  alt={product.title} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300 text-lg">📦 No photo available</div>
+              )}
               
-              {/* Dynamic Overlay Magnifier Viewport */}
+              {/* Dynamic Overlay Viewport */}
               <div 
                 className="absolute inset-0 pointer-events-none bg-no-repeat rounded-2xl"
                 style={zoomStyle}
@@ -160,7 +200,7 @@ export default function ProductDetailPage() {
               >
                 {product.brand_name}
               </Link>
-              <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-1">
+              <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-1 animate-in fade-in duration-200">
                 {product.title}
               </h1>
               <p className="text-sm text-gray-400 font-semibold mt-1">Swoosh, India • 4.8 ★ (120 reviews)</p>
@@ -168,27 +208,24 @@ export default function ProductDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* B2B Price protection gate */}
+            {/* Price protection check */}
             {isUserLoggedIn ? (
               <div className="space-y-4">
                 <div className="flex items-baseline space-x-3">
                   <span className="text-3xl font-black text-gray-950">
                     ₹{product.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-sm text-gray-400 font-medium line-through">
-                    MSRP ₹{msrpPrice?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
                   <span className="bg-red-50 text-red-700 border border-red-100 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full">
-                    50% Wholesale Margin
+                    Wholesale Price
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <span className="bg-gray-100 border border-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full">
-                    📦 ₹{product.min_order_amount?.toLocaleString('en-IN')} Brand Minimum
+                    📦 ₹{brandMin ? brandMin.toLocaleString('en-IN') : '0'} Brand Minimum
                   </span>
                   <span className="bg-green-50 border border-green-200 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full">
-                    🚚 Est. Delivery: {getDeliveryDateRange()}
+                    🌿 Est. Delivery: {getDeliveryDateRange()}
                   </span>
                 </div>
               </div>
@@ -209,72 +246,134 @@ export default function ProductDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* Selection Options (Dropdowns) */}
+            {/* DYNAMIC FAIRE-STYLE VARIANTS ROW SELECTION BUTTONS (NEW BATCH 11!) */}
             {isUserLoggedIn && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Case size</label>
-                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold cursor-pointer">
-                    <option>Case of 1</option>
-                    <option disabled>Case of 6 (Out of stock)</option>
-                    <option disabled>Case of 12 (Out of stock)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Standard color</label>
-                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold cursor-pointer">
-                    <option>Walnut Brown / Default</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Quantity Controller & Dynamic Button */}
-            {isUserLoggedIn && (
-              <div className="space-y-4">
-                <label className="block text-xs font-bold text-gray-500 uppercase">Set wholesale quantity</label>
-                <div className="flex gap-4">
-                  {/* Square design Faire Quantity boxes */}
-                  <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 h-14">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-12 h-full text-gray-600 hover:bg-gray-100 font-bold active:scale-95 transition text-lg cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="px-5 font-bold text-gray-950 text-base">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-12 h-full text-gray-600 hover:bg-gray-100 font-bold active:scale-95 transition text-lg cursor-pointer"
-                    >
-                      +
-                    </button>
+              <div className="space-y-5 animate-in fade-in">
+                {/* 1. Format Button Pill Selector */}
+                {availableFormats.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Select Format</label>
+                    <div className="flex flex-wrap gap-3">
+                      {availableFormats.map((fmt) => {
+                        const isSelected = selectedFormat === fmt;
+                        return (
+                          <button
+                            key={fmt}
+                            type="button"
+                            onClick={() => setSelectedFormat(fmt)}
+                            className={`px-5 py-3 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                              isSelected 
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                                : 'border-gray-200 hover:border-gray-400 text-gray-700 bg-white'
+                            }`}
+                          >
+                            {fmt}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                )}
 
-                  {/* Add to Cart button recalculating total live */}
-                  <button
-                    onClick={() => {
-                      for (let i = 0; i < quantity; i++) {
-                        addToCart(product);
-                      }
-                      alert(`Added ${quantity} of "${product.title}" to cart!`);
-                      router.push('/cart');
-                    }}
-                    className="flex-grow h-14 bg-gray-950 hover:bg-gray-800 text-white font-black text-sm rounded-xl transition duration-150 active:scale-98 shadow-md flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <span>Add to cart</span>
-                    <span className="opacity-40">•</span>
-                    <span>₹{totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </button>
-                </div>
+                {/* 2. Sizes Grid Selector (3-column grid buttons exactly like Faire!) */}
+                {availableSizes.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Select Size</label>
+                    <div className="grid grid-cols-3 gap-3 max-w-md">
+                      {availableSizes.map((sz) => {
+                        const isSelected = selectedSize === sz;
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => setSelectedSize(sz)}
+                            className={`py-3 rounded-xl border text-xs font-bold transition cursor-pointer text-center ${
+                              isSelected 
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-md font-black' 
+                                : 'border-gray-200 hover:border-gray-400 text-gray-600 bg-white font-semibold'
+                            }`}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             <hr className="border-gray-100" />
 
-            {/* Toggling Custom Smooth Accordion Dropdowns */}
+            {/* ROLE-AWARE QUANTITY CONTROLLER & DYNAMIC ADD BUTTON */}
+            {isUserLoggedIn && (
+              <div className="space-y-4">
+                {user.role === 'SELLER' ? (
+                  isBrandOwner ? (
+                    // If seller owns this brand, replace checkout tools with EDIT shortcut!
+                    <Link
+                      href={`/seller/add-product/edit?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
+                      className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition duration-150 flex items-center justify-center space-x-1.5 shadow"
+                    >
+                      <span>✏️</span> <span>Edit Product details</span>
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full h-14 bg-gray-100 text-gray-400 font-bold text-sm rounded-xl cursor-not-allowed flex items-center justify-center"
+                    >
+                      Wholesalers cannot buy products
+                    </button>
+                  )
+                ) : (
+                  <>
+                    <label className="block text-xs font-bold text-gray-500 uppercase">Set wholesale quantity</label>
+                    <div className="flex gap-4">
+                      {/* Square design Faire Quantity boxes */}
+                      <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 h-14">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="w-12 h-full text-gray-600 hover:bg-gray-100 font-bold active:scale-95 transition text-lg cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="px-5 font-bold text-gray-950 text-base">{quantity}</span>
+                        <button
+                          onClick={() => setQuantity(quantity + 1)}
+                          className="w-12 h-full text-gray-600 hover:bg-gray-100 font-bold active:scale-95 transition text-lg cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Add to Cart button recalculating total live */}
+                      <button
+                        onClick={() => {
+                          for (let i = 0; i < quantity; i++) {
+                            addToCart({
+                              ...product,
+                              min_order_amount: brandMin 
+                            });
+                          }
+                          alert(`Added ${quantity} of "${product.title}" to cart!`);
+                          router.push('/cart');
+                        }}
+                        className="flex-grow h-14 bg-gray-950 hover:bg-gray-800 text-white font-black text-sm rounded-xl transition duration-150 active:scale-98 shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <span>Add to cart</span>
+                        <span className="opacity-40">•</span>
+                        <span>₹{totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <hr className="border-gray-100" />
+
+            {/* Accordions */}
             <div className="space-y-3">
-              {/* Dropdown 1 */}
               <div className="border border-gray-150 rounded-xl overflow-hidden">
                 <button 
                   onClick={() => setActiveTab(activeTab === 'description' ? 'description' : 'description')}
@@ -288,7 +387,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Dropdown 2 */}
               <div className="border border-gray-150 rounded-xl overflow-hidden">
                 <button 
                   onClick={() => setActiveTab(activeTab === 'materials' ? 'description' : 'materials')}
@@ -299,14 +397,13 @@ export default function ProductDetailPage() {
                 </button>
                 {activeTab === 'materials' && (
                   <div className="p-4 bg-white text-sm text-gray-600 leading-relaxed border-t border-gray-100 space-y-2">
-                    <p>✨ <strong>B2B Standard Material:</strong> Eco-sourced raw natural fibers & organic binders.</p>
-                    <p>✨ <strong>Country of Manufacture:</strong> Handcrafted in Swoosh, India.</p>
-                    <p>✨ <strong>Commercial Packing:</strong> Sold inside cardboard protective cases with individual dividers.</p>
+                    <p>🌿 <strong>B2B Standard Material:</strong> Eco-sourced raw natural fibers & organic binders.</p>
+                    <p>🌿 <strong>Country of Manufacture:</strong> Handcrafted in India.</p>
+                    <p>🌿 <strong>Commercial Packing:</strong> Dispatched inside cardboard protective cases with individual dividers.</p>
                   </div>
                 )}
               </div>
 
-              {/* Dropdown 3 */}
               <div className="border border-gray-150 rounded-xl overflow-hidden">
                 <button 
                   onClick={() => setActiveTab(activeTab === 'shipping' ? 'description' : 'shipping')}
