@@ -445,7 +445,7 @@ export default function BrandPage() {
                                 });
                                 alert(`Added "${product.title}" to cart!`);
                               }}
-                              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition cursor-pointer"
+                              className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition cursor-pointer"
                             >
                               + Add to Cart
                             </button>
@@ -461,8 +461,9 @@ export default function BrandPage() {
                       </div>
 
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
             ) : (
               /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
@@ -548,8 +549,9 @@ export default function BrandPage() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
             <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
               <button 
+                type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
               >
                 ✕
               </button>
@@ -575,7 +577,7 @@ export default function BrandPage() {
                     </div>
                   ) : (
                     <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition shadow">
                         Choose Logo File
                         <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
                       </label>
@@ -598,7 +600,7 @@ export default function BrandPage() {
                     </div>
                   ) : (
                     <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition shadow">
                         Choose Banner File
                         <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                       </label>
@@ -703,6 +705,7 @@ export default function BrandPage() {
           </div>
         )}
 
-      </main>
-    );
-  }
+      </div>
+    </main>
+  );
+}
