@@ -25,7 +25,7 @@ export default function NewProductPage() {
 }
 
 function NewProductForm() {
-  const searchParams = useSearchParams();
+  const searchParams = searchParamsKey();
   const router = useRouter();
   const urlBrandName = searchParams.get('brand') || '';
 
@@ -41,11 +41,11 @@ function NewProductForm() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Edge Boundaries!)
+  // INTERACTIVE CROP MODAL STATES (With Contain-to-Zoom & Edge Boundaries!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
-  const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait'); // Normalized scale
+  const [imageDimensions, setImageDimensions] = useState({ width: 320, height: 320 }); // Un-zoomed rendered dimensions
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -55,6 +55,15 @@ function NewProductForm() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false); 
   const [mounted, setMounted] = useState(false);
+
+  // Helper search params resolver
+  function searchParamsKey() {
+    try {
+      return useSearchParams();
+    } catch {
+      return new URLSearchParams();
+    }
+  }
 
   // 1. HYDRATION & DRAFT RESTORER (Loads any unsaved draft from browser memory on mount)
   useEffect(() => {
@@ -117,15 +126,25 @@ function NewProductForm() {
     const src = URL.createObjectURL(file);
     setCropSource(src);
 
-    // Read image dimensions before opening modal to set ratio
+    // Read image dimensions on load to pre-calculate standard "contain" bounds
     const img = new Image();
     img.src = src;
     img.onload = () => {
-      if (img.naturalWidth > img.naturalHeight) {
-        setImageAspectRatio('landscape');
+      const NW = img.naturalWidth;
+      const NH = img.naturalHeight;
+      
+      // Calculate exact un-zoomed rendered dimensions inside our 320x320px viewport
+      let rw = 320;
+      let rh = 320;
+      if (NW >= NH) {
+        rw = 320;
+        rh = 320 * (NH / NW);
       } else {
-        setImageAspectRatio('portrait');
+        rh = 320;
+        rw = 320 * (NW / NH);
       }
+
+      setImageDimensions({ width: rw, height: rh });
       setZoom(1);
       setPanX(0);
       setPanY(0);
@@ -135,7 +154,7 @@ function NewProductForm() {
     e.target.value = '';
   };
 
-  // POINTER CAPTURE PANNING HANDLERS (Locks dragging and blocks browser selection)
+  // POINTER CAPTURE PANNING HANDLERS
   const handlePanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId); // Captures pointer
@@ -146,25 +165,19 @@ function NewProductForm() {
   // BOUNDARY CONTROL DRAGGING (Strictly caps pan offsets to prevent exposing white space)
   const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
-    
-    const imgElement = e.currentTarget.querySelector('img');
-    if (!imgElement) return;
 
-    const containerRect = e.currentTarget.getBoundingClientRect();
-    const imgRect = imgElement.getBoundingClientRect();
+    // Calculate real-time active image dimensions based on zoom scale
+    const currentWidth = imageDimensions.width * zoom;
+    const currentHeight = imageDimensions.height * zoom;
 
-    // Calculate how much wider/taller the scaled image is compared to the 320x320 viewport container
-    const extraX = imgRect.width - containerRect.width;
-    const extraY = imgRect.height - containerRect.height;
-
-    // Maximum allowed offset from the center
-    const maxPanX = Math.max(0, extraX / 2);
-    const maxPanY = Math.max(0, extraY / 2);
+    // Calculate maximum allowed translation offsets
+    const maxPanX = Math.max(0, (currentWidth - 320) / 2);
+    const maxPanY = Math.max(0, (currentHeight - 320) / 2);
 
     const rawPanX = e.clientX - dragStart.x;
     const rawPanY = e.clientY - dragStart.y;
 
-    // Hard-stop the image edges so they never cross inside the crop frame
+    // Strict boundary hard-stop (Prevents image borders from crossing inside viewport!)
     const constrainedPanX = Math.max(-maxPanX, Math.min(maxPanX, rawPanX));
     const constrainedPanY = Math.max(-maxPanY, Math.min(maxPanY, rawPanY));
 

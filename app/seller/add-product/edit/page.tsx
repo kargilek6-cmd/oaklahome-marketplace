@@ -377,7 +377,6 @@ function EditProductForm() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Name</label>
                   <input
                     type="text"
-                    placeholder="Give your product a clear, concise name."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -388,7 +387,6 @@ function EditProductForm() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Description</label>
                   <textarea
                     rows={4}
-                    placeholder="Describe the product materials, story, or details..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -571,7 +569,7 @@ function EditProductForm() {
               <img 
                 src={cropSource} 
                 alt="" 
-                className="absolute pointer-events-none max-w-none origin-center" 
+                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" // Centers image by default
                 style={{
                   width: imageAspectRatio === 'landscape' ? 'auto' : '320px',
                   height: imageAspectRatio === 'portrait' ? 'auto' : '320px',
