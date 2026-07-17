@@ -344,7 +344,7 @@ export default function Home() {
             />
           </div>
 
-          {/* RIGHT NAVIGATION CONTROLS */}
+          {/* RIGHT NAVIGATION CONTROLS (UNIFIED PROFILE VIEW & ROLE SEPARATION) */}
           <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
@@ -769,7 +769,7 @@ export default function Home() {
                                   });
                                   alert(`Added "${product.title}" to cart!`);
                                 }}
-                                className="w-full mt-3 bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                                className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
                               >
                                 + Add to Cart
                               </button>
@@ -1157,7 +1157,7 @@ export default function Home() {
 
       {/* POPUP AUTH MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <button 
               onClick={() => {

@@ -461,9 +461,8 @@ export default function BrandPage() {
                       </div>
 
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
             ) : (
               /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
@@ -704,7 +703,6 @@ export default function BrandPage() {
           </div>
         )}
 
-      </div>
-    </main>
-  );
-}
+      </main>
+    );
+  }
