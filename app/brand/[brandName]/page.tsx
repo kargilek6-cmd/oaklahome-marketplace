@@ -181,7 +181,7 @@ export default function BrandPage() {
           brand_values: editValues || null,
           established_year: editYear || null,
           cover_position: editCoverPosition,
-          min_order_amount: parseFloat(editMinOrder) || 0, // Save Brand Minimum Order!
+          min_order_amount: parseFloat(editMinOrder) || 0, 
         })
         .eq('brand_name', decodedBrandName);
 
@@ -393,7 +393,7 @@ export default function BrandPage() {
                                 </div>
                                 <div className="text-right">
                                   <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">
-                                    Brand Min. Order
+                                    Brand Minimum
                                   </p>
                                   <p className="text-base font-bold text-gray-700">
                                     ₹{brandMin ? brandMin.toLocaleString('en-IN') : '0'} min
@@ -543,167 +543,167 @@ export default function BrandPage() {
           )}
         </div>
 
-      </div>
+        {/* ================= 6. EDIT STORE DETAILS MODAL ================= */}
+        {isEditModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
+            <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
+              >
+                ✕
+              </button>
 
-      {/* ================= 6. EDIT STORE DETAILS MODAL ================= */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
-          <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
-            <button 
-              onClick={() => setIsEditModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
-            >
-              ✕
-            </button>
+              <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2">
+                Edit Storefront Details
+              </h2>
+              <p className="text-xs text-gray-400 mb-6 font-medium">Update your public brand cover logo, alignment and profile values.</p>
 
-            <h2 className="text-2xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2">
-              Edit Storefront Details
-            </h2>
-            <p className="text-xs text-gray-400 mb-6 font-medium">Update your public brand cover logo, alignment and profile values.</p>
-
-            <form onSubmit={handleSaveChanges} className="space-y-5">
-              
-              {/* Profile Logo Uploader */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Profile Logo Photo</label>
-                {uploadingProfile ? (
-                  <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
-                ) : editProfileUrl ? (
-                  <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
-                    <img src={editProfileUrl} alt="" className="w-12 h-12 rounded-full object-cover border" />
-                    <button type="button" onClick={() => setEditProfileUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
-                      Remove Logo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                    <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
-                      Choose Logo File
-                      <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
-                    </label>
-                    <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Cover Banner Uploader */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Banner Photo</label>
-                {uploadingCover ? (
-                  <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
-                ) : editCoverUrl ? (
-                  <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
-                    <img src={editCoverUrl} alt="" className="w-20 h-10 rounded object-cover border" />
-                    <button type="button" onClick={() => setEditCoverUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
-                      Remove Banner
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                    <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
-                      Choose Banner File
-                      <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-                    </label>
-                    <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
-                  </div>
-                )}
-              </div>
-
-              {/* DYNAMIC FOCAL POINT IMAGE POSITIONING SLIDER */}
-              {editCoverUrl && (
-                <div className="animate-in slide-in-from-top-2 duration-150">
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                    Adjust Banner Image Vertical Position ({editCoverPosition}%)
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={editCoverPosition}
-                      onChange={(e) => setEditCoverPosition(e.target.value)}
-                      className="w-full accent-gray-950 h-2 bg-gray-100 rounded-lg cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-gray-500 w-8">{editCoverPosition}%</span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-1">Slide to vertical center of focal item (0% = Top, 100% = Bottom).</p>
+              <form onSubmit={handleSaveChanges} className="space-y-5">
+                
+                {/* Profile Logo Uploader */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Profile Logo Photo</label>
+                  {uploadingProfile ? (
+                    <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                  ) : editProfileUrl ? (
+                    <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
+                      <img src={editProfileUrl} alt="" className="w-12 h-12 rounded-full object-cover border" />
+                      <button type="button" onClick={() => setEditProfileUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
+                        Remove Logo
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                        Choose Logo File
+                        <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
+                      </label>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload profile logo</span>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* EDITABLE BRAND-LEVEL MINIMUM ORDER LIMIT */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                  Brand Minimum Order Limit (₹) *
-                </label>
-                <input
-                  type="number"
-                  placeholder="e.g., 2000"
-                  value={editMinOrder}
-                  onChange={(e) => setEditMinOrder(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 font-semibold"
-                  required
-                />
-                <p className="text-[10px] text-gray-400 mt-1">This minimum order limit is enforced dynamically across your storefront and products catalog cart checkout.</p>
-              </div>
+                {/* Cover Banner Uploader */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Banner Photo</label>
+                  {uploadingCover ? (
+                    <div className="bg-gray-50 border rounded-xl py-3 px-4 text-xs font-bold text-gray-400 uppercase animate-pulse">Uploading file...</div>
+                  ) : editCoverUrl ? (
+                    <div className="flex items-center space-x-4 border rounded-xl p-3 bg-gray-50/20">
+                      <img src={editCoverUrl} alt="" className="w-20 h-10 rounded object-cover border" />
+                      <button type="button" onClick={() => setEditCoverUrl('')} className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer">
+                        Remove Banner
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
+                        Choose Banner File
+                        <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                      </label>
+                      <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
+                    </div>
+                  )}
+                </div>
 
-              {/* Brand Story */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Story</label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe your brand's heritage or journey..."
-                  value={editStory}
-                  onChange={(e) => setEditStory(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                />
-              </div>
+                {/* DYNAMIC FOCAL POINT IMAGE POSITIONING SLIDER */}
+                {editCoverUrl && (
+                  <div className="animate-in slide-in-from-top-2 duration-150">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
+                      Adjust Banner Image Vertical Position ({editCoverPosition}%)
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={editCoverPosition}
+                        onChange={(e) => setEditCoverPosition(e.target.value)}
+                        className="w-full accent-gray-950 h-2 bg-gray-100 rounded-lg cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-500 w-8">{editCoverPosition}%</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">Slide to vertical center of focal item (0% = Top, 100% = Bottom).</p>
+                  </div>
+                )}
 
-              {/* Brand Values */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Values</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Handmade, Eco-friendly"
-                  value={editValues}
-                  onChange={(e) => setEditValues(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                />
-              </div>
+                {/* EDITABLE BRAND-LEVEL MINIMUM ORDER LIMIT */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
+                    Brand Minimum Order Limit (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 2000"
+                    value={editMinOrder}
+                    onChange={(e) => setEditMinOrder(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30 font-semibold"
+                    required
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">This minimum order limit is enforced dynamically across your storefront and products catalog cart checkout.</p>
+                </div>
 
-              {/* Year Established */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Year Established</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 2023"
-                  value={editYear}
-                  onChange={(e) => setEditYear(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
-                />
-              </div>
+                {/* Brand Story */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Story</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Describe your brand's heritage or journey..."
+                    value={editStory}
+                    onChange={(e) => setEditStory(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                  />
+                </div>
 
-              {/* Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-3 px-5 rounded-lg text-xs transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateLoading || uploadingProfile || uploadingCover}
-                  className="bg-gray-950 hover:bg-gray-800 text-white font-black py-3 px-5 rounded-lg text-xs transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {updateLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+                {/* Brand Values */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Values</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Handmade, Eco-friendly"
+                    value={editValues}
+                    onChange={(e) => setEditValues(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                  />
+                </div>
 
-            </form>
+                {/* Year Established */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Year Established</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 2023"
+                    value={editYear}
+                    onChange={(e) => setEditYear(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/30"
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-3 px-5 rounded-lg text-xs transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updateLoading || uploadingProfile || uploadingCover}
+                    className="bg-gray-950 hover:bg-gray-800 text-white font-black py-3 px-5 rounded-lg text-xs transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {updateLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </main>
   );
 }
