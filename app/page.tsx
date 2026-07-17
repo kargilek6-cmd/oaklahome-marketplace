@@ -187,7 +187,7 @@ export default function Home() {
           });
 
           alert('Account created successfully! Welcome to Oaklahome.');
-          setIsModalOpenOpen(false);
+          setIsModalOpen(false);
         } else {
           const { data: buyerUser } = await supabase
             .from('buyers')
