@@ -187,7 +187,7 @@ export default function Home() {
           });
 
           alert('Account created successfully! Welcome to Oaklahome.');
-          setIsModalOpen(false);
+          setIsModalOpenOpen(false);
         } else {
           const { data: buyerUser } = await supabase
             .from('buyers')
@@ -271,7 +271,7 @@ export default function Home() {
       <header className="border-b border-gray-100 bg-white sticky top-0 z-40 px-4 md:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
-          {/* ================= DESKTOP LEFT SECTION (Hidden on Mobile) ================= */}
+          {/* DESKTOP LEFT SECTION */}
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className="font-serif text-lg tracking-[0.25em] font-black text-gray-900 hover:opacity-85 transition">
               OAKLAHOME
@@ -311,7 +311,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ================= MOBILE LEFT SECTION (Only visible on Mobile) ================= */}
+          {/* MOBILE LEFT SECTION */}
           <div className="flex md:hidden items-center space-x-3.5">
             {/* 3-Lines Hamburger Drawer Button */}
             <button 
@@ -328,7 +328,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* ================= DESKTOP CENTER SEARCH BAR (Hidden on Mobile) ================= */}
+          {/* DESKTOP CENTER SEARCH BAR */}
           <div className="hidden md:block flex-grow max-w-xl mx-8 relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,8 +344,8 @@ export default function Home() {
             />
           </div>
 
-          {/* ================= DESKTOP RIGHT CONTROLS ================= */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+          {/* RIGHT NAVIGATION CONTROLS */}
+          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -357,7 +357,7 @@ export default function Home() {
                       Go to Portal 📦
                     </Link>
 
-                    {/* NEW BATCH 8: Seller profile Icon next to Go to Portal */}
+                    {/* Seller profile Icon next to Go to Portal */}
                     <div className="relative">
                       <button 
                         onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -389,7 +389,7 @@ export default function Home() {
                             </Link>
                             <button 
                               onClick={() => { logout(); setIsUserDropdownOpen(false); }}
-                              className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
+                              className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold cursor-pointer"
                             >
                               Sign out 🚪
                             </button>
@@ -426,12 +426,6 @@ export default function Home() {
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
-                          <button 
-                            onClick={() => { logout(); setIsUserDropdownOpen(false); }}
-                            className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold"
-                          >
-                            Sign out
-                          </button>
                         </div>
                       </>
                     )}
@@ -440,9 +434,9 @@ export default function Home() {
               </>
             ) : (
               <>
-                <Link href="/seller-onboarding" className="hover:text-gray-950 transition">Sign up to sell</Link>
-                <button onClick={() => openAuthModal('signin')} className="hover:text-gray-950 transition cursor-pointer">Sign in</button>
-                <button onClick={() => openAuthModal('signup')} className="bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in">Sign up to buy</button>
+                <Link href="/seller-onboarding" className="hidden md:inline hover:text-gray-950 transition">Sign up to sell</Link>
+                <button onClick={() => openAuthModal('signin')} className="hidden md:inline hover:text-gray-950 transition cursor-pointer font-bold">Sign in</button>
+                <button onClick={() => openAuthModal('signup')} className="hidden md:inline bg-gray-950 hover:bg-gray-800 text-white font-bold px-4 py-2.5 rounded-md transition duration-150 cursor-pointer animate-in fade-in">Sign up to buy</button>
               </>
             )}
 
@@ -462,7 +456,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* ================= MOBILE RIGHT SECTION (Only visible on Mobile) ================= */}
+          {/* ================= MOBILE RIGHT SECTION ================= */}
           <div className="flex md:hidden items-center space-x-4">
             {/* Search Icon button */}
             <button 
@@ -511,7 +505,7 @@ export default function Home() {
         )}
       </header>
 
-      {/* FAIRE STYLE MOBILE DRAWER (MATCHES SCREENSHOT 4 EXACTLY) */}
+      {/* FAIRE STYLE MOBILE DRAWER (Trending Collections Removed!) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
           <div 
@@ -545,7 +539,7 @@ export default function Home() {
                         <Link
                           href={`/seller/add-product?brand=${encodeURIComponent(user.brandName || '')}`}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
+                          className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full animate-in fade-in"
                         >
                           <span>Portal Dashboard 📦</span>
                           <span>→</span>
@@ -553,7 +547,7 @@ export default function Home() {
                         <Link
                           href={`/brand/${encodeURIComponent(user.brandName || '')}?edit=true`}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
+                          className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full animate-in fade-in"
                         >
                           <span>Edit Store Details ✏️</span>
                           <span>→</span>
@@ -563,7 +557,7 @@ export default function Home() {
                       <Link
                         href="/orders"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full"
+                        className="flex justify-between items-center bg-white text-gray-950 font-bold px-4 py-3 rounded-lg text-sm w-full animate-in fade-in"
                       >
                         <span>My Orders 📋</span>
                         <span>→</span>
@@ -709,7 +703,7 @@ export default function Home() {
                       onClick={() => setSelectedCategory(cat.name)}
                       className="flex flex-col items-center space-y-3 cursor-pointer group flex-shrink-0"
                     >
-                      <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-150 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border border-gray-100 shadow-sm group-hover:scale-105 group-hover:shadow-md transition duration-200">
                         <img src={cat.img} alt="" className="w-full h-full object-cover" />
                       </div>
                       <span className="text-xs font-bold text-gray-700 tracking-wide uppercase">{cat.name}</span>
@@ -775,7 +769,7 @@ export default function Home() {
                                   });
                                   alert(`Added "${product.title}" to cart!`);
                                 }}
-                                className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                                className="w-full mt-3 bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
                               >
                                 + Add to Cart
                               </button>
@@ -1163,7 +1157,7 @@ export default function Home() {
 
       {/* POPUP AUTH MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-gray-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <button 
               onClick={() => {
