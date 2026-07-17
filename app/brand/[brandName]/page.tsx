@@ -29,7 +29,7 @@ export default function BrandPage() {
   const [editProfileUrl, setEditProfileUrl] = useState('');
   const [editCoverUrl, setEditCoverUrl] = useState('');
   const [editCoverPosition, setEditCoverPosition] = useState('50'); 
-  const [editMinOrder, setEditMinOrder] = useState(''); // NEW BATCH 7: Editable brand minimum!
+  const [editMinOrder, setEditMinOrder] = useState(''); // Brand minimum
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -181,7 +181,7 @@ export default function BrandPage() {
           brand_values: editValues || null,
           established_year: editYear || null,
           cover_position: editCoverPosition,
-          min_order_amount: parseFloat(editMinOrder) || 0, // NEW BATCH 7: Save Brand Minimum Order!
+          min_order_amount: parseFloat(editMinOrder) || 0, // Save Brand Minimum Order!
         })
         .eq('brand_name', decodedBrandName);
 
@@ -202,7 +202,7 @@ export default function BrandPage() {
     product.title.toLowerCase().includes(localSearchQuery.toLowerCase())
   );
 
-  // Read Minimum Order Limit directly from the Brand Profile row (NEW BATCH 7!)
+  // Read Minimum Order Limit directly from the Brand Profile row
   const brandMin = brandProfile?.min_order_amount || 0;
 
   if (!mounted || loading) {
@@ -214,7 +214,7 @@ export default function BrandPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white text-left">
       
       {/* 1. COVER BANNER */}
       <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
@@ -287,12 +287,20 @@ export default function BrandPage() {
           {/* Conditional CTAs Panel */}
           <div className="flex space-x-3 pb-2 w-full sm:w-auto justify-center sm:justify-end">
             {isBrandOwner ? (
-              <button 
-                onClick={() => setIsEditModalOpen(true)}
-                className="w-full sm:w-auto bg-gray-950 hover:bg-gray-800 text-white font-black text-xs px-6 py-3.5 rounded-xl transition shadow cursor-pointer flex items-center justify-center space-x-1.5"
-              >
-                <span>✏️</span> <span>Edit Store Details</span>
-              </button>
+              <div className="flex flex-wrap gap-3.5">
+                <Link 
+                  href={`/seller/add-product?brand=${encodeURIComponent(decodedBrandName)}`}
+                  className="w-full sm:w-auto bg-white border border-gray-250 text-gray-700 hover:bg-gray-50 font-bold text-xs px-5 py-3.5 rounded-xl transition shadow flex items-center justify-center space-x-1"
+                >
+                  <span>📦</span> <span>Go to Portal</span>
+                </Link>
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="w-full sm:w-auto bg-gray-950 hover:bg-gray-800 text-white font-black text-xs px-6 py-3.5 rounded-xl transition shadow cursor-pointer flex items-center justify-center space-x-1.5"
+                >
+                  <span>✏️</span> <span>Edit Store Details</span>
+                </button>
+              </div>
             ) : (
               <>
                 <button className="flex-1 sm:flex-none border border-gray-200 hover:bg-gray-50 font-bold text-xs px-5 py-3 rounded-xl transition cursor-not-allowed">
@@ -304,17 +312,6 @@ export default function BrandPage() {
               </>
             )}
           </div>
-        </div>
-
-        {/* 3. OAKLAHOME MARKET EVENT ALERT BANNER */}
-        <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 mt-10 text-left flex justify-between items-center text-sm font-semibold text-amber-800">
-          <div className="flex items-center space-x-2">
-            <span>✨</span>
-            <p><strong>{decodedBrandName}</strong> is participating in Oaklahome Markets. Free delivery on orders over ₹15,000.</p>
-          </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-600 bg-white border border-amber-100 px-3 py-1.5 rounded-full cursor-pointer hover:bg-amber-50 transition">
-            + Add to List
-          </span>
         </div>
 
         {/* 4. TABS BAR & SEARCH INNER STOREFRONT */}
@@ -420,21 +417,39 @@ export default function BrandPage() {
                         </div>
                       </div>
 
+                      {/* CONTEXT AWARE ACTION BUTTON FOR BRAND STOREFRONT */}
                       <div className="p-5 pt-0">
                         {isUserLoggedIn ? (
-                          <button
-                            onClick={() => {
-                              // NEW BATCH 7: Pass the global Brand minimum order into Cart
-                              addToCart({
-                                ...product,
-                                min_order_amount: brandMin 
-                              });
-                              alert(`Added "${product.title}" to cart!`);
-                            }}
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition duration-150 cursor-pointer"
-                          >
-                            + Add to Cart
-                          </button>
+                          user.role === 'SELLER' ? (
+                            isBrandOwner ? (
+                              <Link
+                                href={`/seller/add-product/edit?brand=${encodeURIComponent(decodedBrandName)}&id=${product.id}`}
+                                className="block text-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-lg transition"
+                              >
+                                ✏️ Edit Product
+                              </Link>
+                            ) : (
+                              <button
+                                disabled
+                                className="w-full bg-gray-100 text-gray-400 font-bold text-xs py-3 rounded-lg transition cursor-not-allowed"
+                              >
+                                Wholesalers cannot buy
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              onClick={() => {
+                                addToCart({
+                                  ...product,
+                                  min_order_amount: brandMin
+                                });
+                                alert(`Added "${product.title}" to cart!`);
+                              }}
+                              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition cursor-pointer"
+                            >
+                              + Add to Cart
+                            </button>
+                          )
                         ) : (
                           <Link
                             href="/"
@@ -446,9 +461,8 @@ export default function BrandPage() {
                       </div>
 
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
             ) : (
               /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
@@ -616,7 +630,7 @@ export default function BrandPage() {
                 </div>
               )}
 
-              {/* BATCH 7: EDITABLE BRAND-LEVEL MINIMUM ORDER LIMIT */}
+              {/* EDITABLE BRAND-LEVEL MINIMUM ORDER LIMIT */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
                   Brand Minimum Order Limit (₹) *
