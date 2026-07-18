@@ -92,12 +92,25 @@ function CheckoutForm() {
       if (orderError) throw orderError;
       const newOrderId = orderData[0].id;
 
-      const itemsToInsert = brandItems.map((item) => ({
-        order_id: newOrderId,
-        product_title: item.title,
-        price: item.price,
-        quantity: item.quantity,
-      }));
+      // Map cart items into DB order rows, appending chosen variants dynamically into the title field
+      const itemsToInsert = brandItems.map((item) => {
+        let titleWithSpecs = item.title;
+        if (item.selected_format || item.selected_size) {
+          const specs = [
+            item.selected_format ? `Format: ${item.selected_format}` : '',
+            item.selected_size ? `Size: ${item.selected_size}` : ''
+          ].filter(Boolean).join(', ');
+          
+          titleWithSpecs = `${item.title} (${specs})`;
+        }
+
+        return {
+          order_id: newOrderId,
+          product_title: titleWithSpecs,
+          price: item.price,
+          quantity: item.quantity,
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from('order_items')
@@ -107,7 +120,11 @@ function CheckoutForm() {
 
       // Save the subtotal into our state variable BEFORE we empty the cart
       setFinalTotal(brandSubtotal);
-      brandItems.forEach((item) => removeFromCart(item.id));
+      
+      // Perform composite variant-aware item clears rather than clearing all product matches
+      brandItems.forEach((item) => {
+        removeFromCart(item.id, item.selected_format, item.selected_size);
+      });
       
       setConfirmedOrderId(newOrderId);
       setOrderConfirmed(true);
@@ -130,7 +147,7 @@ function CheckoutForm() {
   if (orderConfirmed) {
     return (
       <main className="min-h-screen bg-gray-50 py-12 px-6 flex justify-center items-center text-center">
-        <div className="max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center">
+        <div className="max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center animate-in zoom-in-95 duration-150">
           <span className="text-6xl">📦</span>
           <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-4">Order Confirmed!</h1>
           <p className="text-gray-500 mt-1">Thank you for your wholesale purchase from {decodedBrandName}.</p>
@@ -156,7 +173,7 @@ function CheckoutForm() {
 
           <Link 
             href="/" 
-            className="inline-block bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition active:scale-95"
+            className="inline-block bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition active:scale-95 cursor-pointer"
           >
             Return to Marketplace
           </Link>
@@ -167,7 +184,7 @@ function CheckoutForm() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6">
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-200">
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
           <header className="mb-8 text-left">
             <Link href="/cart" className="text-sm font-bold text-blue-600 hover:underline">
@@ -205,23 +222,44 @@ function CheckoutForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-xl transition duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 px-6 rounded-xl transition duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer shadow-sm"
             >
               {loading ? 'Processing Order...' : `Confirm Purchase (₹${brandSubtotal.toLocaleString('en-IN')})`}
             </button>
           </form>
         </div>
 
+        {/* Review order detail specifications card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm h-fit text-left">
           <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4">
             Items from {decodedBrandName}
           </h3>
           <div className="divide-y divide-gray-100 mb-6">
             {brandItems.map((item) => (
-              <div key={item.id} className="py-4 flex justify-between items-center">
-                <div>
+              <div 
+                key={`${item.id}-${item.selected_format || ''}-${item.selected_size || ''}`} 
+                className="py-4 flex justify-between items-center"
+              >
+                <div className="text-left">
                   <h4 className="font-bold text-gray-800 text-sm">{item.title}</h4>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  
+                  {/* Selected Specs Badges */}
+                  {(item.selected_format || item.selected_size) && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {item.selected_format && (
+                        <span className="bg-blue-50 text-blue-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-blue-100">
+                          {item.selected_format}
+                        </span>
+                      )}
+                      {item.selected_size && (
+                        <span className="bg-gray-100 text-gray-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-gray-200">
+                          {item.selected_size}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-400 mt-2">
                     Qty: {item.quantity} × ₹{item.price.toLocaleString('en-IN')}
                   </p>
                 </div>

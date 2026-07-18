@@ -34,6 +34,7 @@ function NewProductForm() {
   const [brandName, setBrandName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Home decor');
+  const [subCategory, setSubCategory] = useState('Paintings'); // Dynamic sub-category state
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState('published');
   
@@ -69,7 +70,13 @@ function NewProductForm() {
         const draft = JSON.parse(savedDraft);
         if (draft.title) setTitle(draft.title);
         if (draft.description) setDescription(draft.description);
-        if (draft.category) setCategory(draft.category);
+        if (draft.category) {
+          setCategory(draft.category);
+          // Only restore subCategory if Category matches Home decor
+          if (draft.category === 'Home decor' && draft.subCategory) {
+            setSubCategory(draft.subCategory);
+          }
+        }
         if (draft.price) setPrice(draft.price);
         if (draft.imageUrls) setImageUrls(draft.imageUrls);
       } catch (e) {
@@ -86,12 +93,13 @@ function NewProductForm() {
         title,
         description,
         category,
+        subCategory, // Saved inside auto-draft properties
         price,
         imageUrls
       };
       localStorage.setItem('oaklahome_draft_product', JSON.stringify(draftPayload));
     }
-  }, [title, description, category, price, imageUrls, mounted]);
+  }, [title, description, category, subCategory, price, imageUrls, mounted]);
 
   // 3. BEFOREUNLOAD WARNING
   useEffect(() => {
@@ -311,12 +319,14 @@ function NewProductForm() {
     try {
       const finalImageString = imageUrls.join(',');
 
+      // Insert both category and sub_category securely
       const { error } = await supabase.from('products').insert([
         {
           title,
           brand_name: brandName,
           description,
           category,
+          sub_category: category === 'Home decor' ? subCategory : null, 
           price: parseFloat(price),
           min_order_amount: 0, 
           image_url: finalImageString || null,
@@ -406,14 +416,40 @@ function NewProductForm() {
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Product Type</label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      if (e.target.value !== 'Home decor') {
+                        setSubCategory('');
+                      } else {
+                        setSubCategory('Paintings');
+                      }
+                    }}
+                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold mb-4"
                   >
                     {categories.map((catName) => (
                       <option key={catName} value={catName}>{catName}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* Subcategory Dropdown Field (Visible when category is Home decor) */}
+                {category === 'Home decor' && (
+                  <div className="animate-in fade-in slide-in-from-top-1 duration-150">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Sub-category</label>
+                    <select
+                      value={subCategory}
+                      onChange={(e) => setSubCategory(e.target.value)}
+                      className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
+                    >
+                      <option value="Paintings">Paintings</option>
+                      <option value="Wall art">Wall art</option>
+                      <option value="Vases">Vases</option>
+                      <option value="Candles">Candles</option>
+                      <option value="Something else">Something else</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Owner (Locked)</label>
                   <input
@@ -547,7 +583,7 @@ function NewProductForm() {
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL (WITH POINTER CAPTURE & EDGE BOUNDARIES!) ================= */}
+      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
           <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center text-left">
@@ -563,7 +599,7 @@ function NewProductForm() {
             </h3>
             <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
 
-            {/* Interactive Crop Viewport Frame (Pointer Events lock drag ghost and selection!) */}
+            {/* Interactive Crop Viewport Frame */}
             <div 
               onPointerDown={handlePanPointerDown}
               onPointerMove={handlePanPointerMove}
@@ -574,7 +610,7 @@ function NewProductForm() {
               <img 
                 src={cropSource} 
                 alt="" 
-                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" // Centers image by default
+                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" 
                 style={{
                   width: imageAspectRatio === 'landscape' ? 'auto' : '320px',
                   height: imageAspectRatio === 'portrait' ? 'auto' : '320px',

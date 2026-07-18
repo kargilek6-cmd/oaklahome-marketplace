@@ -23,11 +23,18 @@ export default function ProductDetailPage() {
   const [images, setImages] = useState<string[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // INTERACTIVE B2B VARIANT STATES (NEW BATCH 11!)
+  // INTERACTIVE B2B VARIANT STATES
   const [availableFormats, setAvailableFormats] = useState<string[]>([]);
   const [availableSizes, setAvailableSizes] = useState<string[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
+
+  // INCHES vs CM Unit Toggle state (Matches premium paintings storefronts!)
+  const [unit, setUnit] = useState<'IN' | 'CM'>('IN');
+
+  // Dynamic Image Dimensions / Aspect Ratio Analyzer
+  const [aspectType, setAspectType] = useState<'portrait' | 'landscape' | 'square'>('portrait');
+  const [suggestedSizes, setSuggestedSizes] = useState<string[]>([]);
 
   // Hover Magnifier Coordinates
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({ display: 'none' });
@@ -48,17 +55,30 @@ export default function ProductDetailPage() {
         if (data) {
           setImages(data.image_url ? data.image_url.split(',') : []);
           
-          // Parse format and size lists from database (NEW BATCH 11!)
-          const formList = data.formats ? data.formats.split(',') : [];
-          const sizeList = data.sizes ? data.sizes.split(',') : [];
-          setAvailableFormats(formList);
-          setAvailableSizes(sizeList);
+          // Force standard Art selections if product is under Home decor -> Paintings
+          const isPainting = data.category === 'Home decor' && data.sub_category === 'Paintings';
 
-          // Pre-select first options on load
-          if (formList.length > 0) setSelectedFormat(formList[0]);
-          if (sizeList.length > 0) setSelectedSize(sizeList[0]);
+          if (isPainting) {
+            const paperFormats = ['Art Paper', 'Canvas'];
+            const paintSizes = ['8x10in', '11x14in', '16x20in', '18x24in', '24x36in', '36x48in', '48x64in', '52x70in', '60x80in'];
+            
+            setAvailableFormats(paperFormats);
+            setAvailableSizes(paintSizes);
+            setSelectedFormat('Art Paper');
+            setSelectedSize('8x10in');
+          } else {
+            // Standard parse format and size lists from database (Default Fallback)
+            const formList = data.formats ? data.formats.split(',') : [];
+            const sizeList = data.sizes ? data.sizes.split(',') : [];
+            
+            setAvailableFormats(formList);
+            setAvailableSizes(sizeList);
 
-          // Fetch parent Brand details to fetch its global Minimum Order Limit
+            if (formList.length > 0) setSelectedFormat(formList[0]);
+            if (sizeList.length > 0) setSelectedSize(sizeList[0]);
+          }
+
+          // Fetch parent Brand details to load its global Minimum Order Limit
           const { data: bData } = await supabase
             .from('brands')
             .select('min_order_amount')
@@ -75,6 +95,122 @@ export default function ProductDetailPage() {
     }
     fetchProductDetails();
   }, [id]);
+
+  // DYNAMIC IMAGE ASPECT-RATIO READER (Runs whenever the active display picture switches)
+  useEffect(() => {
+    const activePhoto = images[activeImageIndex];
+    if (!activePhoto) return;
+
+    const img = new Image();
+    img.src = activePhoto;
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const ratio = w / h;
+
+      let type: 'portrait' | 'landscape' | 'square' = 'portrait';
+      if (Math.abs(ratio - 1) < 0.06) {
+        type = 'square';
+      } else if (ratio > 1) {
+        type = 'landscape';
+      } else {
+        type = 'portrait';
+      }
+      setAspectType(type);
+
+      // standard ratios of standard sizes (In Portrait format):
+      const sizesWithRatios = [
+        { name: '8x10in', r: 0.8 },      // 4:5
+        { name: '11x14in', r: 0.785 },   // ~11:14
+        { name: '16x20in', r: 0.8 },      // 4:5
+        { name: '18x24in', r: 0.75 },     // 3:4
+        { name: '24x36in', r: 0.667 },    // 2:3
+        { name: '36x48in', r: 0.75 },     // 3:4
+        { name: '48x64in', r: 0.75 },     // 3:4
+        { name: '52x70in', r: 0.742 },    // ~3:4
+        { name: '60x80in', r: 0.75 }      // 3:4
+      ];
+
+      // Filter standard sizes that fall within acceptable aspect threshold offsets
+      const matches: string[] = [];
+      sizesWithRatios.forEach((sz) => {
+        let sizeRatio = sz.r;
+        if (type === 'landscape') {
+          sizeRatio = 1 / sz.r; // invert calculations for landscape matches
+        } else if (type === 'square') {
+          sizeRatio = 1.0;
+        }
+
+        const difference = Math.abs(ratio - sizeRatio);
+        if (difference < 0.08) {
+          matches.push(sz.name);
+        }
+      });
+
+      // Safe fallback if ratio lies outside standard limits: highlight the closest match
+      if (matches.length === 0) {
+        let closestSize = sizesWithRatios[0].name;
+        let smallestDiff = 999;
+        sizesWithRatios.forEach((sz) => {
+          let sizeRatio = sz.r;
+          if (type === 'landscape') sizeRatio = 1 / sz.r;
+          if (type === 'square') sizeRatio = 1.0;
+          
+          const difference = Math.abs(ratio - sizeRatio);
+          if (difference < smallestDiff) {
+            smallestDiff = difference;
+            closestSize = sz.name;
+          }
+        });
+        matches.push(closestSize);
+      }
+
+      setSuggestedSizes(matches);
+    };
+  }, [images, activeImageIndex]);
+
+  // Display size labels dynamically according to orientation / CM/IN selections
+  const getDisplaySizeLabel = (baseSize: string) => {
+    let orientedSize = baseSize;
+
+    if (aspectType === 'landscape') {
+      // Swaps 8x10in -> 10x8in
+      const parts = baseSize.replace('in', '').split('x');
+      if (parts.length === 2) {
+        orientedSize = `${parts[1]}x${parts[0]}in`;
+      }
+    } else if (aspectType === 'square') {
+      // Maps standard portrait indexes directly into square layout dimensions
+      const squareMap: { [key: string]: string } = {
+        '8x10in': '12x12in',
+        '11x14in': '16x16in',
+        '16x20in': '20x20in',
+        '18x24in': '24x24in',
+        '24x36in': '30x30in',
+        '36x48in': '36x36in',
+        '48x64in': '40x40in',
+        '52x70in': '48x48in',
+        '60x80in': '60x60in',
+      };
+      orientedSize = squareMap[baseSize] || baseSize;
+    }
+
+    if (unit === 'IN') {
+      return orientedSize;
+    }
+
+    // Convert Inches to Centimeters (Inches * 2.54 Rounded)
+    const pattern = orientedSize.match(/(\d+)x(\d+)/);
+    if (pattern && pattern.length === 3) {
+      const wIn = parseInt(pattern[1], 10);
+      const hIn = parseInt(pattern[2], 10);
+      const wCm = Math.round(wIn * 2.54);
+      const hCm = Math.round(hIn * 2.54);
+      return `${wCm}x${hCm}cm`;
+    }
+
+    return orientedSize;
+  };
 
   // Image Magnify Hover Handler
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -119,6 +255,7 @@ export default function ProductDetailPage() {
 
   const activePhoto = images[activeImageIndex] || '';
   const totalPrice = product.price ? product.price * quantity : 0;
+  const isPainting = product.category === 'Home decor' && product.sub_category === 'Paintings';
 
   // Estimated delivery range 6-9 days out
   const getDeliveryDateRange = () => {
@@ -134,11 +271,17 @@ export default function ProductDetailPage() {
     <main className="min-h-screen bg-white py-12 px-6">
       <div className="max-w-7xl mx-auto">
         
-        {/* Breadcrumb */}
+        {/* Breadcrumb Navigation */}
         <nav className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-10 text-left">
           <Link href="/" className="hover:text-gray-900 transition">Market</Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-600">{product.category || 'Product'}</span>
+          <span>{product.category || 'Product'}</span>
+          {product.sub_category && (
+            <>
+              <span className="mx-2">/</span>
+              <span>{product.sub_category}</span>
+            </>
+          )}
           <span className="mx-2">/</span>
           <span className="text-gray-950 font-bold">{product.title}</span>
         </nav>
@@ -246,13 +389,16 @@ export default function ProductDetailPage() {
 
             <hr className="border-gray-100" />
 
-            {/* DYNAMIC FAIRE-STYLE VARIANTS ROW SELECTION BUTTONS (NEW BATCH 11!) */}
+            {/* DYNAMIC VARIANT SELECTIONS */}
             {isUserLoggedIn && (
-              <div className="space-y-5 animate-in fade-in">
-                {/* 1. Format Button Pill Selector */}
+              <div className="space-y-6 animate-in fade-in">
+                
+                {/* 1. Format Button Pill Selector (Art Paper & Canvas) */}
                 {availableFormats.length > 0 && (
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Select Format</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+                      Format ({availableFormats.length})
+                    </label>
                     <div className="flex flex-wrap gap-3">
                       {availableFormats.map((fmt) => {
                         const isSelected = selectedFormat === fmt;
@@ -275,25 +421,64 @@ export default function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* 2. Sizes Grid Selector (3-column grid buttons exactly like Faire!) */}
+                {/* 2. Sizes Grid Selector with Unit Toggle & Suggestion Badging */}
                 {availableSizes.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Select Size</label>
-                    <div className="grid grid-cols-3 gap-3 max-w-md">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center max-w-md">
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+                        Size ({availableSizes.length})
+                      </label>
+                      
+                      {/* Metric Toggle Segment */}
+                      {isPainting && (
+                        <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 scale-90">
+                          <button
+                            type="button"
+                            onClick={() => setUnit('IN')}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition ${
+                              unit === 'IN' ? 'bg-white text-gray-950 shadow-xs' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                          >
+                            IN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setUnit('CM')}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition ${
+                              unit === 'CM' ? 'bg-white text-gray-950 shadow-xs' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                          >
+                            CM
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3.5 max-w-md">
                       {availableSizes.map((sz) => {
                         const isSelected = selectedSize === sz;
+                        const isSuggested = isPainting && suggestedSizes.includes(sz);
+                        const labelText = getDisplaySizeLabel(sz);
+
                         return (
                           <button
                             key={sz}
                             type="button"
                             onClick={() => setSelectedSize(sz)}
-                            className={`py-3 rounded-xl border text-xs font-bold transition cursor-pointer text-center ${
+                            className={`py-3.5 rounded-xl border text-xs font-bold transition cursor-pointer text-center relative ${
                               isSelected 
                                 ? 'bg-blue-600 border-blue-600 text-white shadow-md font-black' 
                                 : 'border-gray-200 hover:border-gray-400 text-gray-600 bg-white font-semibold'
                             }`}
                           >
-                            {sz}
+                            {labelText}
+                            
+                            {/* Best Fit Proportions Badge like Best Of Bharat */}
+                            {isSuggested && (
+                              <span className="absolute -top-1.5 right-1 px-1 py-0.5 bg-yellow-400 text-gray-950 text-[7px] font-extrabold rounded-md shadow-xs uppercase tracking-wider scale-90">
+                                Best Fit ✨
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -310,7 +495,6 @@ export default function ProductDetailPage() {
               <div className="space-y-4">
                 {user.role === 'SELLER' ? (
                   isBrandOwner ? (
-                    // If seller owns this brand, replace checkout tools with EDIT shortcut!
                     <Link
                       href={`/seller/add-product/edit?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
                       className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl transition duration-150 flex items-center justify-center space-x-1.5 shadow"
@@ -346,16 +530,18 @@ export default function ProductDetailPage() {
                         </button>
                       </div>
 
-                      {/* Add to Cart button recalculating total live */}
+                      {/* Add to Cart button incorporating selected format/sizes */}
                       <button
                         onClick={() => {
                           for (let i = 0; i < quantity; i++) {
                             addToCart({
                               ...product,
+                              selected_format: selectedFormat || null,
+                              selected_size: selectedSize ? getDisplaySizeLabel(selectedSize) : null,
                               min_order_amount: brandMin 
                             });
                           }
-                          alert(`Added ${quantity} of "${product.title}" to cart!`);
+                          alert(`Added ${quantity} of "${product.title}" (${selectedFormat}, ${getDisplaySizeLabel(selectedSize)}) to cart!`);
                           router.push('/cart');
                         }}
                         className="flex-grow h-14 bg-gray-950 hover:bg-gray-800 text-white font-black text-sm rounded-xl transition duration-150 active:scale-98 shadow-md flex items-center justify-center space-x-2 cursor-pointer"

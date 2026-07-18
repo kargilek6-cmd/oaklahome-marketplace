@@ -10,13 +10,15 @@ export interface CartItem {
   min_order_amount: number;
   image_url?: string;
   quantity: number;
+  selected_format?: string; // Appends custom chosen material format
+  selected_size?: string;   // Appends custom chosen frame dimensions
 }
 
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: any) => void;
-  removeFromCart: (productId: string | number) => void;
-  updateQuantity: (productId: string | number, quantity: number) => void;
+  removeFromCart: (productId: string | number, format?: string, size?: string) => void;
+  updateQuantity: (productId: string | number, quantity: number, format?: string, size?: string) => void;
   clearCart: () => void;
 }
 
@@ -48,12 +50,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: any) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === product.id);
+      // Match item using product ID + selected variant options so distinct formats/sizes are split
+      const existingItem = prevCart.find(
+        (item) =>
+          item.id === product.id &&
+          item.selected_format === product.selected_format &&
+          item.selected_size === product.selected_size
+      );
+
       if (existingItem) {
         return prevCart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id &&
+          item.selected_format === product.selected_format &&
+          item.selected_size === product.selected_size
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
+
       return [
         ...prevCart,
         {
@@ -64,22 +78,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           min_order_amount: product.min_order_amount || 0,
           image_url: product.image_url,
           quantity: 1,
+          selected_format: product.selected_format || undefined,
+          selected_size: product.selected_size || undefined,
         },
       ];
     });
   };
 
-  const removeFromCart = (productId: string | number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+  const removeFromCart = (productId: string | number, format?: string, size?: string) => {
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) =>
+          !(
+            item.id === productId &&
+            item.selected_format === format &&
+            item.selected_size === size
+          )
+      )
+    );
   };
 
-  const updateQuantity = (productId: string | number, quantity: number) => {
+  const updateQuantity = (productId: string | number, quantity: number, format?: string, size?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, format, size);
       return;
     }
     setCart((prevCart) =>
-      prevCart.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      prevCart.map((item) =>
+        item.id === productId &&
+        item.selected_format === format &&
+        item.selected_size === size
+          ? { ...item, quantity }
+          : item
+      )
     );
   };
 
