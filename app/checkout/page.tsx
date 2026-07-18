@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import Link from 'next/link';
 
-// Next.js 15 requires useSearchParams to be wrapped in a Suspense boundary for safe production builds
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
@@ -61,9 +60,8 @@ function CheckoutForm() {
     e.preventDefault();
     setLoading(true);
 
-    // STRICT INPUT VALIDATION
     if (!buyerName || buyerName.trim().length < 3) {
-      alert('Please enter a valid store / owner name (at least 3 characters).');
+      alert('Please enter a valid delivery name (at least 3 characters).');
       setLoading(false);
       return;
     }
@@ -82,7 +80,7 @@ function CheckoutForm() {
             brand_name: decodedBrandName,
             total_amount: brandSubtotal,
             buyer_name: buyerName,
-            buyer_email: user?.email || 'anonymous_buyer', // Link session automatically!
+            buyer_email: user?.email || 'anonymous_buyer', 
             shipping_address: shippingAddress,
             status: 'pending',
           },
@@ -92,7 +90,6 @@ function CheckoutForm() {
       if (orderError) throw orderError;
       const newOrderId = orderData[0].id;
 
-      // Map cart items into DB order rows, appending chosen variants dynamically into the title field
       const itemsToInsert = brandItems.map((item) => {
         let titleWithSpecs = item.title;
         if (item.selected_format || item.selected_size) {
@@ -118,10 +115,8 @@ function CheckoutForm() {
 
       if (itemsError) throw itemsError;
 
-      // Save the subtotal into our state variable BEFORE we empty the cart
       setFinalTotal(brandSubtotal);
       
-      // Perform composite variant-aware item clears rather than clearing all product matches
       brandItems.forEach((item) => {
         removeFromCart(item.id, item.selected_format, item.selected_size);
       });
@@ -150,7 +145,7 @@ function CheckoutForm() {
         <div className="max-w-xl w-full bg-white border border-gray-200 rounded-2xl p-8 shadow-sm text-center animate-in zoom-in-95 duration-150">
           <span className="text-6xl">📦</span>
           <h1 className="text-3xl font-black text-gray-950 tracking-tight mt-4">Order Confirmed!</h1>
-          <p className="text-gray-500 mt-1">Thank you for your wholesale purchase from {decodedBrandName}.</p>
+          <p className="text-gray-505 mt-1">Thank you for your purchase from {decodedBrandName}.</p>
           
           <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-left my-8 space-y-4">
             <div className="flex justify-between border-b border-gray-200 pb-3">
@@ -158,11 +153,11 @@ function CheckoutForm() {
               <span className="text-sm font-bold text-gray-900">#{confirmedOrderId}</span>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-3">
-              <span className="text-sm font-semibold text-gray-500">Retailer:</span>
+              <span className="text-sm font-semibold text-gray-500">Recipient Name:</span>
               <span className="text-sm font-bold text-gray-900">{buyerName}</span>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-3">
-              <span className="text-sm font-semibold text-gray-500">Brand Store:</span>
+              <span className="text-sm font-semibold text-gray-500">Brand Collection:</span>
               <span className="text-sm font-bold text-gray-900">{decodedBrandName}</span>
             </div>
             <div className="flex justify-between pt-2">
@@ -175,7 +170,7 @@ function CheckoutForm() {
             href="/" 
             className="inline-block bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition active:scale-95 cursor-pointer"
           >
-            Return to Marketplace
+            Return to Store
           </Link>
         </div>
       </main>
@@ -191,15 +186,15 @@ function CheckoutForm() {
               ← Back to Cart
             </Link>
             <h2 className="text-2xl font-black text-gray-950 tracking-tight mt-2">Shipping Details</h2>
-            <p className="text-gray-500 mt-1">Provide your retail store delivery details.</p>
+            <p className="text-gray-505 mt-1">Provide your delivery details.</p>
           </header>
 
           <form onSubmit={handlePlaceOrder} className="space-y-6 text-left">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Store / Buyer Name *</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Full Recipient Name *</label>
               <input
                 type="text"
-                placeholder="e.g., Oak & Home Boutique"
+                placeholder="e.g., Jane Doe"
                 value={buyerName}
                 onChange={(e) => setBuyerName(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -211,7 +206,7 @@ function CheckoutForm() {
               <label className="block text-sm font-bold text-gray-700 mb-2">Shipping Address *</label>
               <textarea
                 rows={4}
-                placeholder="Enter complete shipping address (Street, City, State, ZIP)..."
+                placeholder="Enter complete address (Street, City, State, ZIP)..."
                 value={shippingAddress}
                 onChange={(e) => setShippingAddress(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -229,10 +224,9 @@ function CheckoutForm() {
           </form>
         </div>
 
-        {/* Review order detail specifications card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm h-fit text-left">
           <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4">
-            Items from {decodedBrandName}
+            Items Overview
           </h3>
           <div className="divide-y divide-gray-100 mb-6">
             {brandItems.map((item) => (
@@ -243,7 +237,6 @@ function CheckoutForm() {
                 <div className="text-left">
                   <h4 className="font-bold text-gray-800 text-sm">{item.title}</h4>
                   
-                  {/* Selected Specs Badges */}
                   {(item.selected_format || item.selected_size) && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {item.selected_format && (
@@ -271,7 +264,7 @@ function CheckoutForm() {
           </div>
 
           <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-900">Brand Subtotal:</span>
+            <span className="text-sm font-bold text-gray-900">Total:</span>
             <span className="text-xl font-black text-gray-950">
               ₹{brandSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>

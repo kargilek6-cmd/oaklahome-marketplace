@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase';
 import Link from 'next/link';
 
-// Move categories to the top of the file so TypeScript can access it anywhere
 const categories = [
   'Apparel', 'Accessories', 'Footwear', 'Beauty & wellness',
   'Home decor', 'Kids & baby', 'Food & drink', 'Paper & novelty',
@@ -29,25 +28,26 @@ function NewProductForm() {
   const router = useRouter();
   const urlBrandName = searchParams.get('brand') || '';
 
-  // Form States
   const [title, setTitle] = useState('');
   const [brandName, setBrandName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Home decor');
-  const [subCategory, setSubCategory] = useState('Paintings'); // Dynamic sub-category state
+  const [subCategory, setSubCategory] = useState('Paintings');
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState('published');
   
-  // MULTIPLE IMAGE STATES
+  // Set Count and Shape Configs
+  const [setCount, setSetCount] = useState<number>(1);
+  const [shapeType, setShapeType] = useState<string>('rectangle');
+
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // INTERACTIVE CROP MODAL STATES (With Pointer Capture & Edge Boundaries!)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cropSource, setCropSource] = useState<string | null>(null);
-  const [imageDimensions, setImageDimensions] = useState({ width: 320, height: 320 }); // Un-zoomed rendered dimensions
-  const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait'); // Normalized scale
+  const [imageDimensions, setImageDimensions] = useState({ width: 320, height: 320 });
+  const [imageAspectRatio, setImageAspectRatio] = useState<'portrait' | 'landscape'>('portrait');
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -58,66 +58,13 @@ function NewProductForm() {
   const [uploading, setUploading] = useState(false); 
   const [mounted, setMounted] = useState(false);
 
-  // 1. HYDRATION & DRAFT RESTORER (Loads any unsaved draft from browser memory on mount)
   useEffect(() => {
     if (urlBrandName) {
       setBrandName(decodeURIComponent(urlBrandName));
     }
-
-    const savedDraft = localStorage.getItem('oaklahome_draft_product');
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft);
-        if (draft.title) setTitle(draft.title);
-        if (draft.description) setDescription(draft.description);
-        if (draft.category) {
-          setCategory(draft.category);
-          // Only restore subCategory if Category matches Home decor
-          if (draft.category === 'Home decor' && draft.subCategory) {
-            setSubCategory(draft.subCategory);
-          }
-        }
-        if (draft.price) setPrice(draft.price);
-        if (draft.imageUrls) setImageUrls(draft.imageUrls);
-      } catch (e) {
-        console.error('Failed to parse draft details:', e);
-      }
-    }
     setMounted(true);
   }, [urlBrandName]);
 
-  // 2. AUTOSAVE EFFECT (Only runs when adding new, disabled for editing!)
-  useEffect(() => {
-    if (mounted) {
-      const draftPayload = {
-        title,
-        description,
-        category,
-        subCategory, // Saved inside auto-draft properties
-        price,
-        imageUrls
-      };
-      localStorage.setItem('oaklahome_draft_product', JSON.stringify(draftPayload));
-    }
-  }, [title, description, category, subCategory, price, imageUrls, mounted]);
-
-  // 3. BEFOREUNLOAD WARNING
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const hasChanges = title || description || price || imageUrls.length > 0;
-      if (hasChanges) {
-        e.preventDefault();
-        e.returnValue = ''; 
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [title, description, price, imageUrls]);
-
-  // IMAGE FILE SELECTION (Launches Crop Modal & Normalizes Dimensions!)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,14 +73,12 @@ function NewProductForm() {
     const src = URL.createObjectURL(file);
     setCropSource(src);
 
-    // Read image dimensions on load to pre-calculate standard "contain" bounds
     const img = new Image();
     img.src = src;
     img.onload = () => {
       const NW = img.naturalWidth;
       const NH = img.naturalHeight;
       
-      // Calculate exact un-zoomed rendered dimensions inside our 320x320px viewport
       let rw = 320;
       let rh = 320;
       if (NW >= NH) {
@@ -155,15 +100,13 @@ function NewProductForm() {
     e.target.value = '';
   };
 
-  // POINTER CAPTURE PANNING HANDLERS (Locks dragging and blocks browser selection)
   const handlePanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId); // Captures pointer
+    e.currentTarget.setPointerCapture(e.pointerId);
     setIsPanning(true);
     setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
   };
 
-  // BOUNDARY CONTROL DRAGGING (Strictly caps pan offsets to prevent exposing white space)
   const handlePanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanning) return;
     
@@ -173,18 +116,15 @@ function NewProductForm() {
     const containerRect = e.currentTarget.getBoundingClientRect();
     const imgRect = imgElement.getBoundingClientRect();
 
-    // Calculate how much wider/taller the scaled image is compared to the 320x320 viewport container
     const extraX = imgRect.width - containerRect.width;
     const extraY = imgRect.height - containerRect.height;
 
-    // Maximum allowed offset from the center
     const maxPanX = Math.max(0, extraX / 2);
     const maxPanY = Math.max(0, extraY / 2);
 
     const rawPanX = e.clientX - dragStart.x;
     const rawPanY = e.clientY - dragStart.y;
 
-    // Hard-stop the image edges so they never cross inside the crop frame
     const constrainedPanX = Math.max(-maxPanX, Math.min(maxPanX, rawPanX));
     const constrainedPanY = Math.max(-maxPanY, Math.min(maxPanY, rawPanY));
 
@@ -197,7 +137,6 @@ function NewProductForm() {
     setIsPanning(false);
   };
 
-  // APPLY CROP & CONVERT TO 2048 x 2048 PX SQUARE IMAGE
   const handleApplyCropAndUpload = () => {
     if (!selectedFile || !cropSource) return;
     setUploading(true);
@@ -221,8 +160,6 @@ function NewProductForm() {
 
       const sw = minSide / zoom;
       const sh = minSide / zoom;
-
-      // Scaling factors to translate viewport drag coordinates to natural pixels
       const scaleFactor = minSide / 320; 
 
       const cx = NW / 2;
@@ -271,12 +208,10 @@ function NewProductForm() {
     }
   };
 
-  // Remove photo from gallery list
   const handleRemovePhoto = (indexToRemove: number) => {
     setImageUrls((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
-  // NATIVE HTML5 DRAG & DROP HANDLERS
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -294,15 +229,7 @@ function NewProductForm() {
     setDraggedIndex(null);
   };
 
-  // Confirm cancel action (Safe local routing alert)
   const handleCancelClick = () => {
-    const hasChanges = title || description || price || imageUrls.length > 0;
-    if (hasChanges) {
-      const confirmRoute = window.confirm("You have unsaved changes! Are you sure you want to discard them and exit?");
-      if (!confirmRoute) return;
-      
-      localStorage.removeItem('oaklahome_draft_product');
-    }
     router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
   };
 
@@ -319,7 +246,6 @@ function NewProductForm() {
     try {
       const finalImageString = imageUrls.join(',');
 
-      // Insert both category and sub_category securely
       const { error } = await supabase.from('products').insert([
         {
           title,
@@ -328,15 +254,14 @@ function NewProductForm() {
           category,
           sub_category: category === 'Home decor' ? subCategory : null, 
           price: parseFloat(price),
-          min_order_amount: 0, 
           image_url: finalImageString || null,
           status: status,
+          set_count: category === 'Home decor' && subCategory === 'Paintings' ? setCount : 1,
+          shape_type: category === 'Home decor' && subCategory === 'Paintings' ? shapeType : 'rectangle',
         },
       ]);
 
       if (error) throw error;
-      localStorage.removeItem('oaklahome_draft_product');
-
       alert('Product successfully listed!');
       router.push(`/seller/add-product?brand=${encodeURIComponent(brandName)}`);
     } catch (err: any) {
@@ -349,9 +274,7 @@ function NewProductForm() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6 text-left">
-      <div className="max-w-4xl mx-auto animate-in fade-in duration-200">
-        
-        {/* HEADER */}
+      <div className="max-w-4xl mx-auto">
         <header className="mb-8 flex justify-between items-center border-b border-gray-200 pb-4 text-left">
           <div>
             <button onClick={handleCancelClick} className="text-sm font-bold text-gray-500 hover:text-gray-900 cursor-pointer">
@@ -377,20 +300,17 @@ function NewProductForm() {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-8 text-left">
-          
-          {/* ================= SECTION 1: BASIC INFORMATION ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Basic information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
               
               <div className="space-y-5">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product details*</h3>
-                <p className="text-xs text-gray-400">Add a name and description to help retailers learn more about your product.</p>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Name</label>
                   <input
                     type="text"
-                    placeholder="Give your product a clear, concise name."
+                    placeholder="Give your product a clear name."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -401,7 +321,7 @@ function NewProductForm() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Description</label>
                   <textarea
                     rows={4}
-                    placeholder="Describe the product materials, story, or details..."
+                    placeholder="Describe the product..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
@@ -411,7 +331,6 @@ function NewProductForm() {
 
               <div className="space-y-5">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Product category*</h3>
-                <p className="text-xs text-gray-400">Provide additional information to help us categorize your products.</p>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Product Type</label>
                   <select
@@ -432,7 +351,6 @@ function NewProductForm() {
                   </select>
                 </div>
 
-                {/* Subcategory Dropdown Field (Visible when category is Home decor) */}
                 {category === 'Home decor' && (
                   <div className="animate-in fade-in slide-in-from-top-1 duration-150">
                     <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Sub-category</label>
@@ -445,13 +363,40 @@ function NewProductForm() {
                       <option value="Wall art">Wall art</option>
                       <option value="Vases">Vases</option>
                       <option value="Candles">Candles</option>
-                      <option value="Something else">Something else</option>
                     </select>
                   </div>
                 )}
 
+                {category === 'Home decor' && subCategory === 'Paintings' && (
+                  <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in duration-200">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Set Count</label>
+                      <select
+                        value={setCount}
+                        onChange={(e) => setSetCount(parseInt(e.target.value, 10))}
+                        className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none bg-gray-50/20 font-semibold"
+                      >
+                        <option value={1}>Set of 1 Frame</option>
+                        <option value={2}>Set of 2 Frames</option>
+                        <option value={3}>Set of 3 Frames</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Shape Type</label>
+                      <select
+                        value={shapeType}
+                        onChange={(e) => setShapeType(e.target.value)}
+                        className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none bg-gray-50/20 font-semibold"
+                      >
+                        <option value="rectangle">Rectangle (Standard)</option>
+                        <option value="square">Square</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Owner (Locked)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Owner</label>
                   <input
                     type="text"
                     value={brandName}
@@ -464,23 +409,17 @@ function NewProductForm() {
             </div>
           </section>
 
-          {/* ================= SECTION 2: SINGLE-BUTTON GALLERY ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-1">Images & videos</h2>
-            <p className="text-xs text-gray-400 mb-6">Drag and drop thumbnails to rearrange. The first image will be your main cover photo.</p>
-
-            <div className="flex flex-wrap gap-4 items-center">
-              
-              {/* Single Upload Button */}
+            <div className="flex flex-wrap gap-4 items-center mt-6">
               {imageUrls.length < 8 && (
                 <div className="border-2 border-dashed border-gray-200 hover:border-gray-300 rounded-xl p-4 flex flex-col justify-center items-center text-center bg-gray-50/30 w-36 h-36 relative transition duration-150">
                   {uploading ? (
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider animate-pulse">Cropping...</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider animate-pulse">Uploading...</p>
                   ) : (
                     <div className="space-y-2">
                       <span className="text-xl">📤</span>
-                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Add Photo</p>
-                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[8px] px-2.5 py-1.5 rounded cursor-pointer uppercase tracking-widest transition duration-150">
+                      <label className="inline-block bg-gray-950 hover:bg-gray-800 text-white font-bold text-[8px] px-2.5 py-1.5 rounded cursor-pointer uppercase tracking-widest transition">
                         Upload
                         <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                       </label>
@@ -489,7 +428,6 @@ function NewProductForm() {
                 </div>
               )}
 
-              {/* Dynamic Rearrangeable Thumbnails */}
               {imageUrls.map((url, index) => (
                 <div 
                   key={index}
@@ -497,54 +435,38 @@ function NewProductForm() {
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={handleDragOver}
                   onDrop={() => handleDrop(index)}
-                  className={`w-36 h-36 rounded-xl overflow-hidden border bg-gray-50 relative group cursor-grab transition-transform duration-150 active:cursor-grabbing ${
-                    draggedIndex === index ? 'opacity-40 scale-95 border-gray-900' : 'border-gray-200 hover:border-gray-400 shadow-sm'
+                  className={`w-36 h-36 rounded-xl overflow-hidden border bg-gray-50 relative group cursor-grab transition-all duration-150 ${
+                    draggedIndex === index ? 'opacity-40' : 'border-gray-200 shadow-sm'
                   }`}
                 >
                   <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
-                  
-                  {/* Badge showing cover number */}
-                  <span className="absolute top-2 left-2 bg-gray-950/75 text-white font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider select-none">
-                    {index === 0 ? 'Cover 🖼️' : `#${index + 1}`}
-                  </span>
-
-                  {/* Remove Button */}
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(index)}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] h-5 w-5 rounded-full flex items-center justify-center transition shadow opacity-0 group-hover:opacity-100 cursor-pointer"
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] h-5 w-5 rounded-full flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
               ))}
-
-              {/* Empty state slots (Displays up to 8 total items) */}
-              {[...Array(Math.max(0, 7 - imageUrls.length))].map((_, i) => (
-                <div key={i} className="border border-dashed border-gray-150 rounded-xl bg-gray-50/10 w-36 h-36 flex flex-col justify-center items-center text-gray-300">
-                  <span className="text-lg">🖼️</span>
-                </div>
-              ))}
-
             </div>
           </section>
 
-          {/* ================= SECTION 3: PRICING & ORDER RULES ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
             <h2 className="text-xl font-bold text-gray-950 mb-2">Pricing & Order Rules</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Wholesale Price (₹) *</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Base Price / Retail Price (₹) *</label>
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="₹12.50"
+                  placeholder="₹1200"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20"
+                  className="w-full border border-gray-200 rounded px-4 py-3 text-sm text-gray-900 focus:outline-none bg-gray-50/20"
                   required
                 />
+                <p className="text-[10px] text-gray-400 mt-2 font-medium">This serves as the single baseline price (e.g. Set of 1 Frame on Art Paper) from which all other sizes and formats calculate automatically [1].</p>
               </div>
 
               <div>
@@ -552,17 +474,15 @@ function NewProductForm() {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
+                  className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none bg-gray-50/20 font-semibold"
                 >
-                  <option value="published">Published (Visible on Market)</option>
-                  <option value="draft">Draft (Hidden in Catalog)</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
                 </select>
               </div>
-
             </div>
           </section>
 
-          {/* BOTTOM BUTTON BAR */}
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -574,38 +494,31 @@ function NewProductForm() {
             <button
               type="submit"
               disabled={loading || uploading}
-              className="bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition shadow disabled:bg-gray-200 cursor-pointer"
             >
               {loading ? 'Saving...' : 'Save & publish'}
             </button>
           </div>
-
         </form>
       </div>
 
-      {/* ================= FAIRE STYLE INTERACTIVE CROP, ZOOM & PAN MODAL ================= */}
       {isCropModalOpen && cropSource && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
-          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative animate-in zoom-in-95 duration-150 text-center text-left">
+          <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative text-left">
             <button 
               onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer animate-in fade-in duration-200"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg"
             >
               ✕
             </button>
 
-            <h3 className="text-xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2 text-left">
-              Adjust & Center Photo
-            </h3>
-            <p className="text-xs text-gray-400 mb-6 font-medium text-left">Click and drag directly inside the grid box to pan. Use the slider to zoom.</p>
-
-            {/* Interactive Crop Viewport Frame */}
+            <h3 className="text-xl font-serif font-semibold text-gray-950 mb-2">Adjust & Center Photo</h3>
             <div 
               onPointerDown={handlePanPointerDown}
               onPointerMove={handlePanPointerMove}
               onPointerUp={handlePanPointerUp}
               onPointerCancel={handlePanPointerUp}
-              className="w-[320px] h-[320px] mx-auto border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none touch-none"
+              className="w-[320px] h-[320px] mx-auto border border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none touch-none"
             >
               <img 
                 src={cropSource} 
@@ -619,55 +532,36 @@ function NewProductForm() {
                   transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
                 }}
               />
-              <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
-                <div className="border-b border-white/20 h-1/3 w-full" />
-                <div className="border-b border-white/20 h-1/3 w-full" />
-              </div>
-              <div className="absolute inset-0 pointer-events-none flex justify-between">
-                <div className="border-r border-white/20 w-1/3 h-full" />
-                <div className="border-r border-white/20 w-1/3 h-full" />
-              </div>
             </div>
 
-            {/* Zoom Slider */}
-            <div className="mt-6 space-y-2 text-left">
-              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <span>Zoom Scale</span>
-                <span>{zoom.toFixed(1)}x</span>
-              </div>
-              <div className="flex items-center space-x-4">
-                <button type="button" onClick={() => setZoom(Math.max(1, zoom - 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 cursor-pointer select-none px-2 py-1">-</button>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="3" 
-                  step="0.1"
-                  value={zoom}
-                  onChange={(e) => setZoom(parseFloat(e.target.value))}
-                  className="w-full accent-gray-950 h-1.5 bg-gray-100 rounded-lg cursor-pointer"
-                />
-                <button type="button" onClick={() => setZoom(Math.min(3, zoom + 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 cursor-pointer select-none px-2 py-1">+</button>
-              </div>
+            <div className="mt-6 space-y-2">
+              <input 
+                type="range" 
+                min="1" 
+                max="3" 
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full accent-gray-950 h-1.5 bg-gray-100 rounded-lg"
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+            <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
               <button
                 type="button"
                 onClick={() => { setIsCropModalOpen(false); setSelectedFile(null); setCropSource(null); }}
-                className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-2.5 px-4 rounded-lg text-xs transition cursor-pointer"
+                className="border border-gray-200 py-2.5 px-4 rounded-lg text-xs font-bold"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleApplyCropAndUpload}
-                className="bg-gray-950 hover:bg-gray-800 text-white font-black py-2.5 px-5 rounded-lg text-xs transition shadow cursor-pointer"
+                className="bg-gray-950 text-white font-black py-2.5 px-5 rounded-lg text-xs shadow"
               >
-                Apply & Upload
+                Apply
               </button>
             </div>
-
           </div>
         </div>
       )}
