@@ -344,8 +344,9 @@ export default function Home() {
             />
           </div>
 
-          {/* RIGHT NAVIGATION CONTROLS (UNIFIED PROFILE VIEW & ROLE SEPARATION) */}
-          <div className="flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+          {/* RIGHT NAVIGATION CONTROLS */}
+          {/* FIXED: Hides entire container on mobile screen sizes */}
+          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -452,7 +453,7 @@ export default function Home() {
             {(!mounted || !user || user.role !== 'SELLER') && (
               <Link 
                 href="/cart" 
-                className="bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition flex items-center justify-center relative cursor-pointer"
+                className="hidden md:flex bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition items-center justify-center relative cursor-pointer"
               >
                 <span>🛒</span>
                 {totalCartItems > 0 && (
@@ -655,6 +656,7 @@ export default function Home() {
               backgroundColor: '#0a0a0a'
             }}
           >
+            {/* Added standard mute/autoplay parameters */}
             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
               <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
               Your browser does not support the video tag.
@@ -736,7 +738,7 @@ export default function Home() {
                           <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
                             <div>
                               {/* B2B Route to Product Detail Page PDP! */}
-                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-150 relative shadow-sm hover:shadow-md transition cursor-pointer">
                                 <img 
                                   src={firstImage} 
                                   alt="" 
@@ -1018,7 +1020,7 @@ export default function Home() {
                             </>
                           )}
 
-                          <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+                          <p className="text-gray-505 text-sm mt-1 line-clamp-2">
                             {product.description}
                           </p>
                         </div>
@@ -1068,7 +1070,7 @@ export default function Home() {
                                   });
                                   alert(`Added "${product.title}" to cart!`);
                                 }}
-                                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer"
+                                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer animate-in fade-in"
                               >
                                 + Add to Cart
                               </button>
@@ -1090,7 +1092,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
-              <p className="text-gray-505 text-lg font-medium">No results found</p>
+              <p className="text-gray-550 text-lg font-medium">No results found</p>
               <p className="text-gray-400 text-sm mt-1">We couldn't find any products matching your search.</p>
             </div>
           )}
@@ -1304,7 +1306,7 @@ export default function Home() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number (Optional)</label>
                         <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
-                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-505 border-r border-gray-200">+91</span>
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-555 border-r border-gray-200">+91</span>
                           <input
                             type="tel"
                             placeholder="98765 43210"
@@ -1331,7 +1333,7 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={authLoading}
-                      className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded text-sm transition duration-150 shadow cursor-pointer"
+                      className="w-full bg-gray-950 hover:bg-gray-800 text-white font-black py-3.5 px-6 rounded text-sm transition duration-150 shadow cursor-pointer"
                     >
                       {authLoading ? 'Processing...' : 'Next'}
                     </button>
