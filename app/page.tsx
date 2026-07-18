@@ -426,6 +426,14 @@ export default function Home() {
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Messages (Locked)</span>
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Reviews (Locked)</span>
                           <span className="block px-4 py-2 text-sm text-gray-300 cursor-not-allowed font-medium">Favorites (Locked)</span>
+                          
+                          {/* Working Buyer Logout button */}
+                          <button 
+                            onClick={() => { logout(); setIsUserDropdownOpen(false); }}
+                            className="w-full text-left block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 mt-2 font-bold cursor-pointer"
+                          >
+                            Sign out 🚪
+                          </button>
                         </div>
                       </>
                     )}
@@ -505,7 +513,7 @@ export default function Home() {
         )}
       </header>
 
-      {/* FAIRE STYLE MOBILE DRAWER (Trending Collections Removed!) */}
+      {/* FAIRE STYLE MOBILE DRAWER */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-200">
           <div 
@@ -592,7 +600,7 @@ export default function Home() {
                 )}
               </div>
 
-              {/* BOTTOM BLOCK (White background): Categories for you (Trending Collections Removed!) */}
+              {/* BOTTOM BLOCK (White background): Categories for you */}
               <div className="p-6 text-left bg-white animate-in fade-in">
                 <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">
                   Categories for you
@@ -853,7 +861,7 @@ export default function Home() {
                       >
                         {brand.brand_name}
                       </Link>
-                      <p className="text-xs text-gray-500 font-medium mt-1">Swoosh, India</p>
+                      <p className="text-xs text-gray-505 font-medium mt-1">Swoosh, India</p>
                     </div>
                   </div>
                 ))}
@@ -922,12 +930,16 @@ export default function Home() {
             <p className="text-sm text-neutral-100 font-light leading-relaxed">
               Whether you buy for a clothing boutique or a grocery shop, find all the products you need on Oaklahome.
             </p>
-            <button
-              onClick={() => openAuthModal('signup')}
-              className="bg-white hover:bg-neutral-50 text-gray-950 font-bold px-6 py-3 rounded text-[10px] uppercase tracking-widest transition duration-150 shadow-md inline-block mt-4 cursor-pointer"
-            >
-              Sign up to buy
-            </button>
+            
+            {/* Conditional Signup Button */}
+            {!isUserLoggedIn && (
+              <button
+                onClick={() => openAuthModal('signup')}
+                className="bg-white hover:bg-neutral-50 text-gray-950 font-bold px-6 py-3 rounded text-[10px] uppercase tracking-widest transition duration-150 shadow-md inline-block mt-4 cursor-pointer"
+              >
+                Sign up to buy
+              </button>
+            )}
           </div>
 
           <div className="w-56 h-56 md:w-64 md:h-64 rounded-xl overflow-hidden shadow-lg border border-white/5 mx-auto">
@@ -1023,12 +1035,12 @@ export default function Home() {
                                 {product.brand_name}
                               </Link>
                             )}
-                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                            <p className="text-xs text-gray-505 mt-1 font-medium">
                               ₹{currentBrandMin ? currentBrandMin.toLocaleString('en-IN') : '0'} min
                             </p>
                           </div>
                           
-                          {/* CONTEXT-AWARE CONVERSION ACTION FOR LISTED PRODUCTS (NEW BATCH 8!) */}
+                          {/* CONTEXT-AWARE CONVERSION ACTION FOR LISTED PRODUCTS */}
                           {isUserLoggedIn ? (
                             user.role === 'SELLER' ? (
                               user.brandName === product.brand_name ? (
@@ -1078,7 +1090,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
-              <p className="text-gray-500 text-lg font-medium">No results found</p>
+              <p className="text-gray-505 text-lg font-medium">No results found</p>
               <p className="text-gray-400 text-sm mt-1">We couldn't find any products matching your search.</p>
             </div>
           )}
@@ -1096,20 +1108,24 @@ export default function Home() {
               >
                 The best selection of brands for your store, all in one place
               </h3>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => openAuthModal('signup')}
-                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm cursor-pointer"
-                >
-                  Sign up to buy
-                </button>
-                <Link
-                  href="/seller-onboarding"
-                  className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm text-center"
-                >
-                  Sign up to sell
-                </Link>
-              </div>
+              
+              {/* Conditional Footer Signup Actions */}
+              {!isUserLoggedIn && (
+                <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in duration-200">
+                  <button
+                    onClick={() => openAuthModal('signup')}
+                    className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm cursor-pointer"
+                  >
+                    Sign up to buy
+                  </button>
+                  <Link
+                    href="/seller-onboarding"
+                    className="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-6 py-3 border border-gray-200 rounded text-xs uppercase tracking-widest transition duration-150 shadow-sm text-center"
+                  >
+                    Sign up to sell
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -1217,7 +1233,7 @@ export default function Home() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mobile Phone Number *</label>
                         <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden focus-within:ring-1 focus-within:ring-gray-400">
-                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-505 border-r border-gray-200">+91</span>
                           <input
                             type="tel"
                             placeholder="Enter 10-digit mobile number"
@@ -1288,7 +1304,7 @@ export default function Home() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number (Optional)</label>
                         <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
-                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-500 border-r border-gray-200">+91</span>
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-505 border-r border-gray-200">+91</span>
                           <input
                             type="tel"
                             placeholder="98765 43210"
