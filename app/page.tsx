@@ -787,7 +787,7 @@ export default function Home() {
                                   });
                                   alert(`Added "${product.title}" to cart!`);
                                 }}
-                                className="w-full mt-3 bg-gray-950 hover:bg-gray-850 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                                className="w-full mt-3 bg-gray-950 hover:bg-gray-855 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
                               >
                                 + Add to Cart
                               </button>
@@ -879,7 +879,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
-              <p className="text-gray-500 text-lg font-medium">No brands found</p>
+              <p className="text-gray-505 text-lg font-medium">No brands found</p>
               <p className="text-gray-400 text-sm mt-1">We couldn't find any brands matching "{selectedCategory}" in this category.</p>
             </div>
           )}
@@ -1354,7 +1354,7 @@ export default function Home() {
                   <p>
                     New to Oaklahome?{' '}
                     <button 
-                      onClick={() => setType('signup')}
+                      onClick={() => setModalType('signup')}
                       className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign up to buy
@@ -1364,7 +1364,7 @@ export default function Home() {
                   <p>
                     Already have an account?{' '}
                     <button 
-                      onClick={() => setType('signin')}
+                      onClick={() => setModalType('signin')}
                       className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign in
