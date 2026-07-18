@@ -345,8 +345,8 @@ export default function Home() {
           </div>
 
           {/* RIGHT NAVIGATION CONTROLS */}
-          {/* FIXED: Hides entire container on mobile screen sizes */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
+          {/* FIXED: Uses max-md:hidden to securely hide all desktop menu items on mobile viewports */}
+          <div className="max-md:hidden flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
                 {user.role === 'SELLER' ? (
@@ -453,7 +453,7 @@ export default function Home() {
             {(!mounted || !user || user.role !== 'SELLER') && (
               <Link 
                 href="/cart" 
-                className="hidden md:flex bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition items-center justify-center relative cursor-pointer"
+                className="max-md:hidden bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100 p-2.5 rounded-full transition items-center justify-center relative cursor-pointer"
               >
                 <span>🛒</span>
                 {totalCartItems > 0 && (
@@ -656,12 +656,20 @@ export default function Home() {
               backgroundColor: '#0a0a0a'
             }}
           >
-            {/* Added standard mute/autoplay parameters */}
-            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover z-0 opacity-85">
+            {/* FIXED: Background Video strictly loads on desktop only. Hides play overlays completely on mobile! */}
+            <video autoPlay loop muted playsInline className="hidden md:block absolute inset-0 w-full h-full object-cover z-0 opacity-85">
               <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
+
+            {/* FIXED: Mobile-only high-res static poster backup */}
+            <div 
+              className="absolute inset-0 w-full h-full bg-cover bg-center z-0 md:hidden opacity-85"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80')"
+              }}
+            />
 
             <div className="absolute inset-0 z-20 flex items-center px-12 md:px-24 max-w-7xl mx-auto w-full">
               <div className="max-w-4xl text-white space-y-6 text-left">
@@ -738,7 +746,7 @@ export default function Home() {
                           <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
                             <div>
                               {/* B2B Route to Product Detail Page PDP! */}
-                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-150 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
                                 <img 
                                   src={firstImage} 
                                   alt="" 
@@ -1166,7 +1174,7 @@ export default function Home() {
             <div>
               <span>©2026 Oaklahome Wholesale, Inc.</span>
             </div>
-            <p className="font-medium text-gray-500 tracking-wide">
+            <p className="font-medium text-gray-505 tracking-wide">
               *Sign up to get 50% off your order, up to ₹10,000.
             </p>
           </div>
@@ -1306,7 +1314,7 @@ export default function Home() {
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone number (Optional)</label>
                         <div className="flex border border-gray-200 rounded bg-gray-50/30 overflow-hidden">
-                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-555 border-r border-gray-200">+91</span>
+                          <span className="bg-gray-100 px-4 py-3 text-sm text-gray-550 border-r border-gray-200">+91</span>
                           <input
                             type="tel"
                             placeholder="98765 43210"
@@ -1346,7 +1354,7 @@ export default function Home() {
                   <p>
                     New to Oaklahome?{' '}
                     <button 
-                      onClick={() => setModalType('signup')}
+                      onClick={() => setType('signup')}
                       className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign up to buy
@@ -1356,7 +1364,7 @@ export default function Home() {
                   <p>
                     Already have an account?{' '}
                     <button 
-                      onClick={() => setModalType('signin')}
+                      onClick={() => setType('signin')}
                       className="text-blue-600 hover:underline cursor-pointer font-bold"
                     >
                       Sign in
