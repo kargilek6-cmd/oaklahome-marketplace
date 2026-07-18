@@ -15,8 +15,8 @@ const categories = [
 const availableFormats = ['Art Paper', 'Canvas', 'Glass', 'Metal'];
 
 const availableSizes = [
-  '8×10in', '11×14in', '16×20in', '18×24in', '24×36in', 
-  '36×48in', '48×64in', '52×70in', '60×80in'
+  '8x10in', '11x14in', '16x20in', '18x24in', '24x36in', 
+  '36x48in', '48x64in', '52x70in', '60x80in'
 ];
 
 export default function EditProductPage() {
@@ -42,6 +42,7 @@ function EditProductForm() {
   const [brandName, setBrandName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Home decor');
+  const [subCategory, setSubCategory] = useState(''); // Dynamic sub-category state
   const [price, setPrice] = useState('');
   const [status, setStatus] = useState('published');
   
@@ -89,6 +90,7 @@ function EditProductForm() {
           setTitle(data.title || '');
           setDescription(data.description || '');
           setCategory(data.category || 'Home decor');
+          setSubCategory(data.sub_category || ''); // Load sub-category from DB
           setPrice(data.price ? data.price.toString() : '');
           setImageUrls(data.image_url ? data.image_url.split(',') : []);
           setStatus(data.status || 'published');
@@ -322,17 +324,18 @@ function EditProductForm() {
       const finalFormatsString = selectedFormats.join(',');
       const finalSizesString = selectedSizes.join(',');
 
-      // Run UPDATE query to overwrite existing product listing
+      // Run UPDATE query to overwrite existing product listing with new category/sub-category
       const { error } = await supabase
         .from('products')
         .update({
           title,
           description,
           category,
+          sub_category: category === 'Home decor' ? subCategory : null, // Save sub-category changes
           price: parseFloat(price),
           image_url: finalImageString || null,
-          formats: finalFormatsString || '', // Save variants text columns
-          sizes: finalSizesString || '',
+          formats: category === 'Home decor' && subCategory === 'Paintings' ? finalFormatsString : '', // Save variants only if paintings
+          sizes: category === 'Home decor' && subCategory === 'Paintings' ? finalSizesString : '',
           status: status,
         })
         .eq('id', productId);
@@ -417,14 +420,40 @@ function EditProductForm() {
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Product Type</label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      if (e.target.value !== 'Home decor') {
+                        setSubCategory('');
+                      } else {
+                        setSubCategory('Paintings');
+                      }
+                    }}
+                    className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold mb-4"
                   >
                     {categories.map((catName) => (
                       <option key={catName} value={catName}>{catName}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* Sub-category Dropdown Field (Visible when category is Home decor) */}
+                {category === 'Home decor' && (
+                  <div className="animate-in fade-in slide-in-from-top-1 duration-150">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Sub-category</label>
+                    <select
+                      value={subCategory}
+                      onChange={(e) => setSubCategory(e.target.value)}
+                      className="w-full border border-gray-200 rounded px-4 py-3.5 text-sm text-gray-900 focus:outline-none focus:border-gray-400 bg-gray-50/20 font-semibold"
+                    >
+                      <option value="Paintings">Paintings</option>
+                      <option value="Wall art">Wall art</option>
+                      <option value="Vases">Vases</option>
+                      <option value="Candles">Candles</option>
+                      <option value="Something else">Something else</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Brand Owner (Locked)</label>
                   <input
@@ -504,63 +533,65 @@ function EditProductForm() {
             </div>
           </section>
 
-          {/* ================= NEW SECTION 3: PRODUCT VARIANTS SELECTION (BATCH 11!) ================= */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-950 mb-2">Product Variants (Painting Categories)</h2>
-            <p className="text-xs text-gray-400 mb-6">Select which materials and sizes are available for your wholesale buyers.</p>
+          {/* ================= PRODUCT VARIANTS SELECTION (Only visible for Home decor -> Paintings!) ================= */}
+          {category === 'Home decor' && subCategory === 'Paintings' && (
+            <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm animate-in fade-in duration-200">
+              <h2 className="text-xl font-bold text-gray-950 mb-2">Product Variants (Painting Categories)</h2>
+              <p className="text-xs text-gray-400 mb-6">Select which materials and sizes are available for your wholesale buyers.</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
-              
-              {/* Formats Variants Multi-selector Checkbox */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Formats</h3>
-                <div className="grid grid-cols-2 gap-3.5">
-                  {availableFormats.map((format) => {
-                    const isChecked = selectedFormats.includes(format);
-                    return (
-                      <button
-                        key={format}
-                        type="button"
-                        onClick={() => handleFormatToggle(format)}
-                        className={`text-left border px-4 py-3 rounded-xl font-bold text-xs tracking-wide transition ${
-                          isChecked 
-                            ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
-                        }`}
-                      >
-                        {isChecked ? '✅ ' : '⬜ '} {format}
-                      </button>
-                    );
-                  })}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                
+                {/* Formats Variants Multi-selector Checkbox */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Formats</h3>
+                  <div className="grid grid-cols-2 gap-3.5">
+                    {availableFormats.map((format) => {
+                      const isChecked = selectedFormats.includes(format);
+                      return (
+                        <button
+                          key={format}
+                          type="button"
+                          onClick={() => handleFormatToggle(format)}
+                          className={`text-left border px-4 py-3 rounded-xl font-bold text-xs tracking-wide transition cursor-pointer ${
+                            isChecked 
+                              ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
+                              : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
+                          }`}
+                        >
+                          {isChecked ? '✅ ' : '⬜ '} {format}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* Sizes Variants Multi-selector Checkbox */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Sizes</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {availableSizes.map((size) => {
-                    const isChecked = selectedSizes.includes(size);
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => handleSizeToggle(size)}
-                        className={`text-center border py-2.5 rounded-xl font-bold text-[10px] tracking-wide transition ${
-                          isChecked 
-                            ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    );
-                  })}
+                {/* Sizes Variants Multi-selector Checkbox */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Available Sizes</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {availableSizes.map((size) => {
+                      const isChecked = selectedSizes.includes(size);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => handleSizeToggle(size)}
+                          className={`text-center border py-2.5 rounded-xl font-bold text-[10px] tracking-wide transition cursor-pointer ${
+                            isChecked 
+                              ? 'border-gray-950 bg-gray-50 text-gray-950 ring-1 ring-gray-950' 
+                              : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-white'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           {/* ================= SECTION 4: PRICING & ORDER RULES ================= */}
           <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
@@ -643,7 +674,7 @@ function EditProductForm() {
               <img 
                 src={cropSource} 
                 alt="" 
-                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" // Centers image by default
+                className="absolute pointer-events-none max-w-none left-1/2 top-1/2" 
                 style={{
                   width: imageAspectRatio === 'landscape' ? 'auto' : '320px',
                   height: imageAspectRatio === 'portrait' ? 'auto' : '320px',
