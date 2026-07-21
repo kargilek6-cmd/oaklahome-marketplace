@@ -345,6 +345,7 @@ export default function Home() {
           </div>
 
           {/* RIGHT NAVIGATION CONTROLS */}
+          {/* FIXED: Uses max-md:hidden to securely hide all desktop menu items on mobile viewports */}
           <div className="max-md:hidden flex items-center space-x-6 text-sm font-semibold text-gray-700 relative">
             {mounted && user ? (
               <>
@@ -655,14 +656,14 @@ export default function Home() {
               backgroundColor: '#0a0a0a'
             }}
           >
-            {/* Background Video strictly loads on desktop only. Hides play overlays completely on mobile! */}
+            {/* FIXED: Background Video strictly loads on desktop only. Hides play overlays completely on mobile! */}
             <video autoPlay loop muted playsInline className="hidden md:block absolute inset-0 w-full h-full object-cover z-0 opacity-85">
               <source src="https://player.vimeo.com/external/661631215.hd.mp4?s=aae0f79bd28f0b6dd91e7f236f72d6f548bcb47f&profile_id=175" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
             <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/50 to-transparent z-10" />
 
-            {/* Mobile-only high-res static poster backup */}
+            {/* FIXED: Mobile-only high-res static poster backup */}
             <div 
               className="absolute inset-0 w-full h-full bg-cover bg-center z-0 md:hidden opacity-85"
               style={{
@@ -728,129 +729,69 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* SWAPPED: Explore wholesale products section (Now Section 1 of body, right below Welcome) */}
+                {/* RECENTLY VIEWED CONTAINER */}
                 <div className="pt-6 border-t border-gray-50">
                   <h3 
                     className="text-2xl font-light text-gray-950 mb-6"
                     style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
                   >
-                    Explore wholesale products
+                    Recently viewed
                   </h3>
                   
-                  {searchedProducts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      {searchedProducts.map((product) => {
+                  {products.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      {products.slice(0, 4).map((product) => {
                         const firstImage = product.image_url ? product.image_url.split(',')[0] : '';
-                        const currentBrandMin = brandMinMap[product.brand_name] || 0;
-
                         return (
-                          <div 
-                            key={product.id} 
-                            className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
-                          >
+                          <div key={product.id} className="group text-left flex flex-col justify-between animate-in fade-in">
                             <div>
-                              {firstImage && (
-                                <Link href={`/product/${product.id}`} className="relative block w-full aspect-square bg-gray-50 cursor-pointer overflow-hidden">
-                                  <img 
-                                    src={firstImage} 
-                                    alt={product.title} 
-                                    className="w-full h-full object-cover"
-                                    style={{ objectPosition: `50% ${product.image_position || '50'}%` }}
-                                  />
+                              {/* B2B Route to Product Detail Page PDP! */}
+                              <Link href={`/product/${product.id}`} className="block w-full aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                                <img 
+                                  src={firstImage} 
+                                  alt="" 
+                                  className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                                  style={{ objectPosition: `50% ${product.image_position || '50'}%` }} // Dynamic focal alignment
+                                />
+                              </Link>
+                              <div className="mt-2.5">
+                                <h4 className="font-bold text-sm text-gray-900 line-clamp-1">{product.title}</h4>
+                                <p className="text-xs text-gray-505 font-bold mt-1">₹{product.price?.toLocaleString('en-IN')}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Add to Cart Button (With Context-Aware Roles!) */}
+                            {isUserLoggedIn && user.role === 'SELLER' ? (
+                              user.brandName === product.brand_name ? (
+                                <Link
+                                  href={`/seller/add-product/new?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
+                                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 text-center block"
+                                >
+                                  ✏️ Edit Product
                                 </Link>
-                              )}
-                              <div className="p-5">
-                                {isUserLoggedIn ? (
-                                  <>
-                                    <div className="flex items-baseline space-x-2">
-                                      <span className="text-lg font-black text-gray-950">
-                                        ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                                      </span>
-                                      <span className="text-xs text-gray-400 line-through">
-                                        MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </span>
-                                    </div>
-
-                                    <Link href={`/product/${product.id}`} className="block text-base font-semibold text-gray-800 mt-2 line-clamp-2 hover:underline">
-                                      {product.title}
-                                    </Link>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="flex items-baseline mb-3">
-                                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
-                                        Pricing Protected 🔒
-                                      </span>
-                                    </div>
-                                    <h3 className="text-base font-semibold text-gray-400 line-clamp-2 blur-[2px] select-none">
-                                      {product.title}
-                                    </h3>
-                                  </>
-                                )}
-
-                                <p className="text-gray-505 text-sm mt-1 line-clamp-2">
-                                  {product.description}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="p-5 pt-0">
-                              <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
-                                <div>
-                                  {product.brand_name && (
-                                    <Link 
-                                      href={`/brand/${encodeURIComponent(product.brand_name)}`}
-                                      className="block text-sm font-bold text-gray-950 hover:underline hover:text-blue-600 transition"
-                                    >
-                                      {product.brand_name}
-                                    </Link>
-                                  )}
-                                  <p className="text-xs text-gray-505 mt-1 font-medium">
-                                    ₹{currentBrandMin ? currentBrandMin.toLocaleString('en-IN') : '0'} min
-                                  </p>
-                                </div>
-                                
-                                {isUserLoggedIn ? (
-                                  user.role === 'SELLER' ? (
-                                    user.brandName === product.brand_name ? (
-                                      <Link
-                                        href={`/seller/add-product/new?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 text-center block"
-                                      >
-                                        ✏️ Edit Product
-                                      </Link>
-                                    ) : (
-                                      <button
-                                        disabled
-                                        className="bg-gray-100 text-gray-400 font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-not-allowed text-center"
-                                      >
-                                        Sellers cannot buy
-                                      </button>
-                                    )
-                                  ) : (
-                                    <button
-                                      onClick={() => {
-                                        addToCart({
-                                          ...product,
-                                          min_order_amount: currentBrandMin
-                                        });
-                                        alert(`Added "${product.title}" to cart!`);
-                                      }}
-                                      className="bg-gray-900 hover:bg-gray-805 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer animate-in fade-in"
-                                    >
-                                      + Add to Cart
-                                    </button>
-                                  )
-                                ) : (
-                                  <button
-                                    onClick={() => openAuthModal('signin')}
-                                    className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 cursor-pointer"
-                                  >
-                                    Sign in to buy
-                                  </button>
-                                )}
-                              </div>
-                            </div>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="w-full mt-3 bg-gray-100 text-gray-400 font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-not-allowed text-center"
+                                >
+                                  Sellers cannot buy
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Inject parent Brand minimum order limit
+                                  addToCart({
+                                    ...product,
+                                    min_order_amount: brandMinMap[product.brand_name] || 0
+                                  });
+                                  alert(`Added "${product.title}" to cart!`);
+                                }}
+                                className="w-full mt-3 bg-gray-950 hover:bg-gray-855 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition duration-150 active:scale-95 cursor-pointer text-center"
+                              >
+                                + Add to Cart
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -878,6 +819,72 @@ export default function Home() {
           )}
         </>
       )}
+
+      {/* SECTION 1: THE "FEATURED BRANDS" SECTION */}
+      <section className="max-w-7xl mx-auto py-16 px-6">
+        <h2 
+          className="text-3xl font-light text-gray-950 mb-8"
+          style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
+        >
+          Featured brands
+        </h2>
+
+        {/* HORIZONTAL CAPSULES */}
+        <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
+          {categories.map((catName) => {
+            const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
+            return (
+              <button
+                key={catName}
+                onClick={() => setSelectedCategory(catName)}
+                className={`px-5 py-2.5 border rounded-full text-xs font-bold uppercase tracking-wider transition duration-150 cursor-pointer flex-shrink-0 ${
+                  isActive 
+                    ? 'bg-gray-950 border-gray-950 text-white shadow-sm hover:bg-gray-800' 
+                    : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50 text-gray-700 bg-white'
+                }`}
+              >
+                {catName}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* BRANDS LIST */}
+        <div className="mt-12">
+          {filteredBrands.length > 0 ? (
+            <div className="space-y-16">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {filteredBrands.map((brand) => (
+                  <div key={brand.id} className="group overflow-hidden text-left">
+                    <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-150 relative shadow-sm hover:shadow-md transition cursor-pointer">
+                      <img 
+                        src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600'} 
+                        alt={brand.brand_name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        style={{ objectPosition: `50% ${brand.cover_position || '50'}%` }} // Dynamic brand focal alignment
+                      />
+                    </Link>
+                    <div className="mt-3">
+                      <Link 
+                        href={`/brand/${encodeURIComponent(brand.brand_name)}`}
+                        className="font-bold text-sm text-gray-900 hover:underline hover:text-blue-600 transition"
+                      >
+                        {brand.brand_name}
+                      </Link>
+                      <p className="text-xs text-gray-505 font-medium mt-1">Swoosh, India</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
+              <p className="text-gray-505 text-lg font-medium">No brands found</p>
+              <p className="text-gray-400 text-sm mt-1">We couldn't find any brands matching "{selectedCategory}" in this category.</p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* SECTION 2: THE "WE'RE OAKLAHOME" ABOUT BANNER */}
       <section className="bg-[#3c2529] py-16 px-6 border-b border-gray-100 text-white">
@@ -956,67 +963,145 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SWAPPED SECTION 1 (Now at position of Section 4): THE "FEATURED BRANDS" SECTION */}
+      {/* SECTION 4: THE PRODUCTS CATALOG GRID (SQUARE GRAPHIC ALIGNMENTS) */}
       <section className="max-w-7xl mx-auto py-16 px-6">
         <h2 
           className="text-3xl font-light text-gray-950 mb-8"
           style={{ fontFamily: "Playfair Display, Baskerville, Georgia, serif" }}
         >
-          Featured brands
+          Explore wholesale products
         </h2>
 
-        {/* HORIZONTAL CAPSULES */}
-        <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-none">
-          {categories.map((catName) => {
-            const isActive = selectedCategory.toLowerCase() === catName.toLowerCase();
-            return (
-              <button
-                key={catName}
-                onClick={() => setSelectedCategory(catName)}
-                className={`px-5 py-2.5 border rounded-full text-xs font-bold uppercase tracking-wider transition duration-150 cursor-pointer flex-shrink-0 ${
-                  isActive 
-                    ? 'bg-gray-950 border-gray-950 text-white shadow-sm hover:bg-gray-800' 
-                    : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50 text-gray-700 bg-white'
-                }`}
-              >
-                {catName}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* BRANDS LIST */}
-        <div className="mt-12">
-          {filteredBrands.length > 0 ? (
+        <div className="mt-12 text-left">
+          {searchedProducts.length > 0 ? (
             <div className="space-y-16">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                {filteredBrands.map((brand) => (
-                  <div key={brand.id} className="group overflow-hidden text-left">
-                    <Link href={`/brand/${encodeURIComponent(brand.brand_name)}`} className="block w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-150 relative shadow-sm hover:shadow-md transition cursor-pointer">
-                      <img 
-                        src={brand.cover_photo_url || 'https://images.unsplash.com/photo-1441986300917-646?w=600'} 
-                        alt={brand.brand_name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        style={{ objectPosition: `50% ${brand.cover_position || '50'}%` }} // Dynamic brand focal alignment
-                      />
-                    </Link>
-                    <div className="mt-3">
-                      <Link 
-                        href={`/brand/${encodeURIComponent(brand.brand_name)}`}
-                        className="font-bold text-sm text-gray-900 hover:underline hover:text-blue-600 transition"
-                      >
-                        {brand.brand_name}
-                      </Link>
-                      <p className="text-xs text-gray-505 font-medium mt-1">Swoosh, India</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {searchedProducts.map((product) => {
+                  const firstImage = product.image_url ? product.image_url.split(',')[0] : '';
+                  
+                  // Read current product brand's minimum limit dynamically from the map
+                  const currentBrandMin = brandMinMap[product.brand_name] || 0;
+
+                  return (
+                    <div 
+                      key={product.id} 
+                      className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between animate-in fade-in"
+                    >
+                      <div>
+                        {firstImage && (
+                          /* FORCE PERFECT SQUARE 1:1 RATIO + DYNAMIC FOCAL ALIGNMENT */
+                          <Link href={`/product/${product.id}`} className="relative block w-full aspect-square bg-gray-50 cursor-pointer overflow-hidden">
+                            <img 
+                              src={firstImage} 
+                              alt={product.title} 
+                              className="w-full h-full object-cover"
+                              style={{ objectPosition: `50% ${product.image_position || '50'}%` }} // Product focal positioning
+                            />
+                          </Link>
+                        )}
+                        <div className="p-5">
+                          {isUserLoggedIn ? (
+                            <>
+                              <div className="flex items-baseline space-x-2">
+                                <span className="text-lg font-black text-gray-950">
+                                  ₹{product.price ? product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                                <span className="text-xs text-gray-400 line-through">
+                                  MSRP ₹{(product.price * 2).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+
+                              <Link href={`/product/${product.id}`} className="block text-base font-semibold text-gray-800 mt-2 line-clamp-2 hover:underline">
+                                {product.title}
+                              </Link>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-baseline mb-3">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                                  Pricing Protected 🔒
+                                </span>
+                              </div>
+                              <h3 className="text-base font-semibold text-gray-400 line-clamp-2 blur-[2px] select-none">
+                                {product.title}
+                              </h3>
+                            </>
+                          )}
+
+                          <p className="text-gray-505 text-sm mt-1 line-clamp-2">
+                            {product.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-5 pt-0">
+                        <div className="pt-4 border-t border-gray-100 flex justify-between items-end">
+                          <div>
+                            {product.brand_name && (
+                              <Link 
+                                href={`/brand/${encodeURIComponent(product.brand_name)}`}
+                                className="block text-sm font-bold text-gray-950 hover:underline hover:text-blue-600 transition"
+                              >
+                                {product.brand_name}
+                              </Link>
+                            )}
+                            <p className="text-xs text-gray-505 mt-1 font-medium">
+                              ₹{currentBrandMin ? currentBrandMin.toLocaleString('en-IN') : '0'} min
+                            </p>
+                          </div>
+                          
+                          {/* CONTEXT-AWARE CONVERSION ACTION FOR LISTED PRODUCTS */}
+                          {isUserLoggedIn ? (
+                            user.role === 'SELLER' ? (
+                              user.brandName === product.brand_name ? (
+                                <Link
+                                  href={`/seller/add-product/new?brand=${encodeURIComponent(product.brand_name)}&id=${product.id}`}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 text-center block"
+                                >
+                                  ✏️ Edit Product
+                                </Link>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="bg-gray-100 text-gray-400 font-bold text-xs py-2.5 px-4 rounded-xl transition cursor-not-allowed text-center"
+                                >
+                                  Sellers cannot buy
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Inject parent Brand minimum order limit
+                                  addToCart({
+                                    ...product,
+                                    min_order_amount: currentBrandMin
+                                  });
+                                  alert(`Added "${product.title}" to cart!`);
+                                }}
+                                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 active:scale-95 cursor-pointer animate-in fade-in"
+                              >
+                                + Add to Cart
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              onClick={() => openAuthModal('signin')}
+                              className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs py-2.5 px-4 rounded-lg transition duration-150 cursor-pointer"
+                            >
+                              Sign in to buy
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-12 text-center max-w-md mx-auto">
-              <p className="text-gray-505 text-lg font-medium">No brands found</p>
-              <p className="text-gray-400 text-sm mt-1">We couldn't find any brands matching "{selectedCategory}" in this category.</p>
+              <p className="text-gray-550 text-lg font-medium">No results found</p>
+              <p className="text-gray-400 text-sm mt-1">We couldn't find any products matching your search.</p>
             </div>
           )}
         </div>
