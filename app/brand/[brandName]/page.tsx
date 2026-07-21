@@ -34,10 +34,16 @@ export default function BrandPage() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
 
-  // INTERACTIVE BANNER DRAGGING STATES
-  const [isDraggingCover, setIsDraggingCover] = useState(false);
-  const [dragStartY, setDragStartY] = useState(0);
-  const [dragStartPos, setDragStartPos] = useState(50);
+  // COVER BANNER INTERACTIVE CROP MODAL STATES
+  const [isBannerCropOpen, setIsBannerCropOpen] = useState(false);
+  const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
+  const [bannerCropSource, setBannerCropSource] = useState<string | null>(null);
+  const [bannerDimensions, setBannerDimensions] = useState({ width: 400, height: 150 });
+  const [bannerZoom, setBannerZoom] = useState(1);
+  const [bannerPanX, setBannerPanX] = useState(0);
+  const [bannerPanY, setBannerPanY] = useState(0);
+  const [isBannerPanning, setIsBannerPanning] = useState(false);
+  const [bannerDragStart, setBannerDragStart] = useState({ x: 0, y: 0 });
 
   // Fetch brand profile data
   const fetchBrandData = async () => {
@@ -109,30 +115,122 @@ export default function BrandPage() {
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
     : null;
 
-  // Banner Pointer Drag Repositioning Handlers
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isEditModalOpen) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setIsDraggingCover(true);
-    setDragStartY(e.clientY);
-    setDragStartPos(parseInt(editCoverPosition || '50', 10));
+  // Launch crop modal when a new banner file is selected
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedBannerFile(file);
+    const src = URL.createObjectURL(file);
+    setBannerCropSource(src);
+
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const NW = img.naturalWidth;
+      const NH = img.naturalHeight;
+      
+      let rw = 400;
+      let rh = 150;
+      const viewportRatio = 400 / 150; // 2.67
+      const imageRatio = NW / NH;
+      if (imageRatio >= viewportRatio) {
+        rh = 150;
+        rw = 150 * imageRatio;
+      } else {
+        rw = 400;
+        rh = 400 / imageRatio;
+      }
+
+      setBannerDimensions({ width: rw, height: rh });
+      setBannerZoom(1);
+      setBannerPanX(0);
+      setBannerPanY(0);
+      setIsBannerCropOpen(true);
+    };
+
+    e.target.value = '';
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingCover) return;
-    const deltaY = e.clientY - dragStartY;
-    const containerHeight = e.currentTarget.offsetHeight;
+  // Convert cropped coordinates to natural pixels and export as 1920x720 banner
+  const handleApplyCropAndUpload = () => {
+    if (!selectedBannerFile || !bannerCropSource) return;
+    setUploadingCover(true);
+    setIsBannerCropOpen(false);
 
-    // Moving pointer up decreases offset, moving down increases offset.
-    // Scales to a natural drag repositioning offset.
-    const percentageShift = -(deltaY / containerHeight) * 100;
-    const newPos = Math.max(0, Math.min(100, Math.round(dragStartPos + percentageShift)));
-    setEditCoverPosition(newPos.toString());
+    const img = new Image();
+    img.src = bannerCropSource;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1920;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setUploadingCover(false);
+        return;
+      }
+
+      const NW = img.naturalWidth;
+      const NH = img.naturalHeight;
+
+      // Scale factors natural pixels to rendered pixels
+      const renderedWidth = bannerDimensions.width * bannerZoom;
+      const renderedHeight = bannerDimensions.height * bannerZoom;
+
+      const scaleX = NW / renderedWidth;
+      const scaleY = NH / renderedHeight;
+
+      const cropWidthRendered = 400;
+      const cropHeightRendered = 150;
+
+      const rx = (renderedWidth / 2) - (cropWidthRendered / 2) - bannerPanX;
+      const ry = (renderedHeight / 2) - (cropHeightRendered / 2) - bannerPanY;
+
+      const sx = rx * scaleX;
+      const sy = ry * scaleY;
+      const sw = cropWidthRendered * scaleX;
+      const sh = cropHeightRendered * scaleY;
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1920, 720);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setUploadingCover(false);
+          return;
+        }
+        const croppedFile = new File([blob], selectedBannerFile.name, { type: 'image/jpeg' });
+        await handleBannerUploadToSupabase(croppedFile);
+      }, 'image/jpeg', 0.95);
+    };
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    setIsDraggingCover(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
+  const handleBannerUploadToSupabase = async (file: File) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cover-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const safeFolder = decodedBrandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      const filePath = `${safeFolder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setEditCoverUrl(data.publicUrl);
+      setEditCoverPosition('50'); // Reset cover alignment since it is already cropped
+    } catch (err: any) {
+      console.error('Banner upload failed:', err);
+      alert('Failed to upload banner: ' + err.message);
+    } finally {
+      setUploadingCover(false);
+      setSelectedBannerFile(null);
+      setBannerCropSource(null);
+    }
   };
 
   // Profile Upload handler
@@ -163,37 +261,6 @@ export default function BrandPage() {
       alert('Failed to upload logo: ' + err.message);
     } finally {
       setUploadingProfile(false);
-    }
-  };
-
-  // Cover Upload handler
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingCover(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `cover-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const safeFolder = decodedBrandName.trim().replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-      const filePath = `${safeFolder}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      setEditCoverUrl(data.publicUrl);
-    } catch (err: any) {
-      console.error('Cover upload failed:', err);
-      alert('Failed to upload banner: ' + err.message);
-    } finally {
-      setUploadingCover(false);
     }
   };
 
@@ -246,32 +313,9 @@ export default function BrandPage() {
   return (
     <main className="min-h-screen bg-white text-left">
       
-      {/* 1. COVER BANNER WITH DYNAMIC REPOSITION DRAG */}
-      <div 
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className={`w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100 select-none touch-none ${
-          isEditModalOpen ? 'cursor-ns-resize border-2 border-blue-400 shadow-inner' : ''
-        }`}
-      >
-        {isEditModalOpen && (
-          <div className="absolute inset-0 bg-black/40 z-10 flex items-center justify-center pointer-events-none">
-            <span className="bg-gray-950/80 text-white font-bold text-xs px-4 py-2 rounded-full uppercase tracking-wider animate-pulse flex items-center space-x-2">
-              <span>↕️</span> <span>Drag image up/down to reposition banner</span>
-            </span>
-          </div>
-        )}
-
-        {editCoverUrl && isEditModalOpen ? (
-          <img 
-            src={editCoverUrl} 
-            alt="" 
-            className="w-full h-full object-cover transition-all pointer-events-none" 
-            style={{ objectPosition: `50% ${editCoverPosition}%` }}
-          />
-        ) : brandProfile?.cover_photo_url ? (
+      {/* 1. COVER BANNER WITH OPTION */}
+      <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
+        {brandProfile?.cover_photo_url ? (
           <img 
             src={brandProfile.cover_photo_url} 
             alt="" 
@@ -284,7 +328,6 @@ export default function BrandPage() {
             <p className="text-xs font-bold uppercase tracking-wider mt-1">Store banner photo</p>
           </div>
         )}
-
         <div className="absolute top-6 left-6 z-20">
           <Link href="/" className="bg-white/95 hover:bg-white text-gray-900 font-bold text-xs px-4 py-2.5 rounded-full shadow-md transition flex items-center space-x-1">
             <span>←</span> <span>Back to Market</span>
@@ -493,7 +536,7 @@ export default function BrandPage() {
                                 });
                                 alert(`Added "${product.title}" to cart!`);
                               }}
-                              className="w-full bg-gray-950 hover:bg-gray-800 text-white font-bold text-xs py-3 rounded-lg transition cursor-pointer"
+                              className="w-full bg-gray-955 hover:bg-gray-850 text-white font-bold text-xs py-3 rounded-lg transition cursor-pointer"
                             >
                               + Add to Cart
                             </button>
@@ -515,7 +558,7 @@ export default function BrandPage() {
             ) : (
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <span className="text-3xl">📦</span>
-                <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
+                <p className="text-gray-505 font-bold text-lg mt-4">No products found</p>
                 <p className="text-gray-400 text-sm mt-1 font-medium">This brand storefront is currently empty.</p>
                 {isBrandOwner && (
                   <Link 
@@ -631,7 +674,7 @@ export default function BrandPage() {
                   )}
                 </div>
 
-                {/* Cover Banner Uploader */}
+                {/* Cover Banner Uploader (Triggers dynamic cropping on-selection) */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cover Banner Photo</label>
                   {uploadingCover ? (
@@ -647,7 +690,7 @@ export default function BrandPage() {
                     <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
                       <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
                         Choose Banner File
-                        <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                        <input type="file" accept="image/*" onChange={handleBannerFileChange} className="hidden" />
                       </label>
                       <span className="px-4 py-3 text-xs text-gray-400 font-semibold truncate">Upload cover banner</span>
                     </div>
@@ -671,7 +714,7 @@ export default function BrandPage() {
                       />
                       <span className="text-xs font-bold text-gray-500 w-8">{editCoverPosition}%</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">Slide or drag the banner image directly up/down (0% = Top, 100% = Bottom).</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Slide standard vertical center alignment (0% = Top, 100% = Bottom).</p>
                   </div>
                 )}
 
@@ -751,6 +794,111 @@ export default function BrandPage() {
         )}
 
       </div>
+
+      {/* ================= 7. BANNER CROP, ZOOM & PAN VIEWPORT MODAL ================= */}
+      {isBannerCropOpen && bannerCropSource && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-150">
+          <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative text-left">
+            <button 
+              onClick={() => { setIsBannerCropOpen(false); setSelectedBannerFile(null); setBannerCropSource(null); }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-xl font-serif font-semibold text-gray-950 tracking-tight leading-none mb-2">
+              Position & Zoom Banner
+            </h3>
+            <p className="text-xs text-gray-400 mb-6 font-medium">Click and drag directly inside the rectangular frame to position your banner. Use the slider to zoom.</p>
+
+            {/* Interactive Wide Rectangular Viewport (400x150) */}
+            <div 
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setIsBannerPanning(true);
+                setBannerDragStart({ x: e.clientX - bannerPanX, y: e.clientY - bannerPanY });
+              }}
+              onPointerMove={(e) => {
+                if (!isBannerPanning) return;
+                const currentWidth = bannerDimensions.width * bannerZoom;
+                const currentHeight = bannerDimensions.height * bannerZoom;
+                const maxPanX = Math.max(0, (currentWidth - 400) / 2);
+                const maxPanY = Math.max(0, (currentHeight - 150) / 2);
+                const rawPanX = e.clientX - bannerDragStart.x;
+                const rawPanY = e.clientY - bannerDragStart.y;
+                setBannerPanX(Math.max(-maxPanX, Math.min(maxPanX, rawPanX)));
+                setBannerPanY(Math.max(-maxPanY, Math.min(maxPanY, rawPanY)));
+              }}
+              onPointerUp={(e) => {
+                setIsBannerPanning(false);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }}
+              onPointerCancel={() => setIsBannerPanning(false)}
+              className="w-[400px] h-[150px] mx-auto border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 relative cursor-move select-none touch-none"
+            >
+              <img 
+                src={bannerCropSource} 
+                alt="" 
+                className="absolute pointer-events-none max-w-none left-1/2 top-1/2"
+                style={{
+                  width: bannerDimensions.width,
+                  height: bannerDimensions.height,
+                  transform: `translate(calc(-50% + ${bannerPanX}px), calc(-50% + ${bannerPanY}px)) scale(${bannerZoom})`,
+                }}
+              />
+              <div className="absolute inset-0 pointer-events-none border border-white/20 flex flex-col justify-between">
+                <div className="border-b border-white/20 h-1/3 w-full" />
+                <div className="border-b border-white/20 h-1/3 w-full" />
+              </div>
+              <div className="absolute inset-0 pointer-events-none flex justify-between">
+                <div className="border-r border-white/20 w-1/3 h-full" />
+                <div className="border-r border-white/20 w-1/3 h-full" />
+              </div>
+            </div>
+
+            {/* Zoom Slider */}
+            <div className="mt-6 space-y-2">
+              <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <span>Zoom Scale</span>
+                <span>{bannerZoom.toFixed(1)}x</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button type="button" onClick={() => setBannerZoom(Math.max(1, bannerZoom - 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 px-2 py-1 cursor-pointer">-</button>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="3" 
+                  step="0.1"
+                  value={bannerZoom}
+                  onChange={(e) => setBannerZoom(parseFloat(e.target.value))}
+                  className="w-full accent-gray-950 h-1.5 bg-gray-100 rounded-lg cursor-pointer"
+                />
+                <button type="button" onClick={() => setBannerZoom(Math.min(3, bannerZoom + 0.2))} className="text-sm font-black text-gray-600 hover:text-gray-950 px-2 py-1 cursor-pointer">+</button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+              <button
+                type="button"
+                onClick={() => { setIsBannerCropOpen(false); setSelectedBannerFile(null); setBannerCropSource(null); }}
+                className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 font-bold py-2.5 px-4 rounded-lg text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCropAndUpload}
+                className="bg-gray-950 hover:bg-gray-800 text-white font-black py-2.5 px-5 rounded-lg text-xs transition shadow cursor-pointer"
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
