@@ -29,10 +29,15 @@ export default function BrandPage() {
   const [editProfileUrl, setEditProfileUrl] = useState('');
   const [editCoverUrl, setEditCoverUrl] = useState('');
   const [editCoverPosition, setEditCoverPosition] = useState('50'); 
-  const [editMinOrder, setEditMinOrder] = useState(''); // Brand minimum
+  const [editMinOrder, setEditMinOrder] = useState(''); 
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
+
+  // INTERACTIVE BANNER DRAGGING STATES
+  const [isDraggingCover, setIsDraggingCover] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartPos, setDragStartPos] = useState(50);
 
   // Fetch brand profile data
   const fetchBrandData = async () => {
@@ -103,6 +108,32 @@ export default function BrandPage() {
   const averageRating = totalReviews > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
     : null;
+
+  // Banner Pointer Drag Repositioning Handlers
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isEditModalOpen) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDraggingCover(true);
+    setDragStartY(e.clientY);
+    setDragStartPos(parseInt(editCoverPosition || '50', 10));
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingCover) return;
+    const deltaY = e.clientY - dragStartY;
+    const containerHeight = e.currentTarget.offsetHeight;
+
+    // Moving pointer up decreases offset, moving down increases offset.
+    // Scales to a natural drag repositioning offset.
+    const percentageShift = -(deltaY / containerHeight) * 100;
+    const newPos = Math.max(0, Math.min(100, Math.round(dragStartPos + percentageShift)));
+    setEditCoverPosition(newPos.toString());
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDraggingCover(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   // Profile Upload handler
   const handleProfileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,7 +233,6 @@ export default function BrandPage() {
     product.title.toLowerCase().includes(localSearchQuery.toLowerCase())
   );
 
-  // Read Minimum Order Limit directly from the Brand Profile row
   const brandMin = brandProfile?.min_order_amount || 0;
 
   if (!mounted || loading) {
@@ -216,9 +246,32 @@ export default function BrandPage() {
   return (
     <main className="min-h-screen bg-white text-left">
       
-      {/* 1. COVER BANNER */}
-      <div className="w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100">
-        {brandProfile?.cover_photo_url ? (
+      {/* 1. COVER BANNER WITH DYNAMIC REPOSITION DRAG */}
+      <div 
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className={`w-full h-64 bg-gray-150 relative overflow-hidden flex items-center justify-center border-b border-gray-100 select-none touch-none ${
+          isEditModalOpen ? 'cursor-ns-resize border-2 border-blue-400 shadow-inner' : ''
+        }`}
+      >
+        {isEditModalOpen && (
+          <div className="absolute inset-0 bg-black/40 z-10 flex items-center justify-center pointer-events-none">
+            <span className="bg-gray-950/80 text-white font-bold text-xs px-4 py-2 rounded-full uppercase tracking-wider animate-pulse flex items-center space-x-2">
+              <span>↕️</span> <span>Drag image up/down to reposition banner</span>
+            </span>
+          </div>
+        )}
+
+        {editCoverUrl && isEditModalOpen ? (
+          <img 
+            src={editCoverUrl} 
+            alt="" 
+            className="w-full h-full object-cover transition-all pointer-events-none" 
+            style={{ objectPosition: `50% ${editCoverPosition}%` }}
+          />
+        ) : brandProfile?.cover_photo_url ? (
           <img 
             src={brandProfile.cover_photo_url} 
             alt="" 
@@ -231,6 +284,7 @@ export default function BrandPage() {
             <p className="text-xs font-bold uppercase tracking-wider mt-1">Store banner photo</p>
           </div>
         )}
+
         <div className="absolute top-6 left-6 z-20">
           <Link href="/" className="bg-white/95 hover:bg-white text-gray-900 font-bold text-xs px-4 py-2.5 rounded-full shadow-md transition flex items-center space-x-1">
             <span>←</span> <span>Back to Market</span>
@@ -243,7 +297,6 @@ export default function BrandPage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between -mt-12 gap-6 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
             
-            {/* Overlapping Circle Logo */}
             <div className="w-24 h-24 bg-white border-4 border-white rounded-full overflow-hidden shadow-lg flex items-center justify-center flex-shrink-0 z-10">
               {brandProfile?.profile_photo_url ? (
                 <img src={brandProfile.profile_photo_url} alt="" className="w-full h-full object-cover" />
@@ -252,39 +305,34 @@ export default function BrandPage() {
               )}
             </div>
 
-            {/* Brand details container with clear margins */}
-            <div className="flex flex-col space-y-1.5 pt-2 sm:pt-4">
-              <h1 
-                className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none"
-                style={{ textShadow: '0 1px 1px rgba(255, 255, 255, 0.5)' }} 
-              >
+            <div className="flex flex-col space-y-1.5 pt-2 sm:pt-4 text-left w-full">
+              <h1 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight leading-none">
                 {decodedBrandName}
               </h1>
               
-              {/* Dynamic Ratings Loader */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-gray-600 font-semibold leading-none">
+              <div className="flex flex-wrap items-center justify-start gap-2 text-sm text-gray-600 font-semibold leading-none">
                 <span>India</span>
                 <span className="text-gray-300">•</span>
                 {averageRating ? (
                   <div className="flex items-center space-x-1">
                     <span className="text-amber-500 text-base">★</span>
                     <span className="text-gray-950 font-black">{averageRating}</span>
-                    <span className="text-gray-500 font-medium">({totalReviews} reviews)</span>
+                    <span className="text-gray-505 font-medium">({totalReviews} reviews)</span>
                   </div>
                 ) : (
                   <span className="text-gray-500 font-medium">No reviews yet</span>
                 )}
               </div>
               
-              <div className="pt-1">
-                <span className="text-xs text-gray-700 font-bold uppercase tracking-wider bg-gray-50 border border-gray-150 rounded-md px-3 py-1.5 inline-block">
-                  ₹{brandMin?.toLocaleString('en-IN')} Minimum Order
+              {/* RESTORED WHOLESALE MOQ UNDER BRAND NAMES */}
+              <div className="pt-1.5">
+                <span className="text-xs text-gray-700 font-bold uppercase tracking-wider bg-blue-50/50 border border-blue-200 rounded-md px-3 py-1.5 inline-block">
+                  ₹{brandMin?.toLocaleString('en-IN')} Minimum Order Limit
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Conditional CTAs Panel */}
           <div className="flex space-x-3 pb-2 w-full sm:w-auto justify-center sm:justify-end">
             {isBrandOwner ? (
               <div className="flex flex-wrap gap-3.5">
@@ -409,7 +457,7 @@ export default function BrandPage() {
                                 </span>
                               </div>
                               <h3 className="text-xl font-bold text-gray-400 blur-[2px] select-none">{product.title}</h3>
-                              <p className="text-gray-500 text-sm mt-2 line-clamp-2">
+                              <p className="text-gray-550 text-sm mt-2 line-clamp-2">
                                 {product.description}
                               </p>
                             </>
@@ -417,7 +465,7 @@ export default function BrandPage() {
                         </div>
                       </div>
 
-                      {/* CONTEXT AWARE ACTION BUTTON FOR BRAND STOREFRONT */}
+                      {/* ACTION BUTTON */}
                       <div className="p-5 pt-0">
                         {isUserLoggedIn ? (
                           user.role === 'SELLER' ? (
@@ -465,7 +513,6 @@ export default function BrandPage() {
                 })}
               </div>
             ) : (
-              /* EMPTY STOREFRONT WITH CONDITIONAL "+ ADD PRODUCTS" CALL FOR BRAND OWNER */
               <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-8 max-w-md mx-auto">
                 <span className="text-3xl">📦</span>
                 <p className="text-gray-500 font-bold text-lg mt-4">No products found</p>
@@ -481,7 +528,6 @@ export default function BrandPage() {
               </div>
             )
           ) : (
-            /* About Brand Story Panel + Real Buyer Reviews List */
             <div className="max-w-3xl space-y-12 animate-in fade-in duration-200">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 uppercase tracking-wider">Our Story</h3>
@@ -508,7 +554,7 @@ export default function BrandPage() {
                 </div>
               </div>
 
-              {/* FAIRE STYLE REAL RETAILER REVIEWS LIST */}
+              {/* REVIEWS LIST */}
               <div className="pt-6 border-t border-gray-100">
                 <h3 className="text-lg font-bold text-gray-900 pb-3 uppercase tracking-wider">
                   Retailer Reviews ({totalReviews})
@@ -549,7 +595,6 @@ export default function BrandPage() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in duration-150">
             <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-2xl border border-gray-150 relative max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-left">
               <button 
-                type="button"
                 onClick={() => setIsEditModalOpen(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold p-2 text-lg cursor-pointer"
               >
@@ -577,7 +622,7 @@ export default function BrandPage() {
                     </div>
                   ) : (
                     <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition shadow">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
                         Choose Logo File
                         <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
                       </label>
@@ -600,7 +645,7 @@ export default function BrandPage() {
                     </div>
                   ) : (
                     <div className="flex border rounded-xl bg-gray-50/30 overflow-hidden">
-                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition shadow">
+                      <label className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-4 py-3 cursor-pointer uppercase tracking-widest transition">
                         Choose Banner File
                         <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                       </label>
@@ -626,7 +671,7 @@ export default function BrandPage() {
                       />
                       <span className="text-xs font-bold text-gray-500 w-8">{editCoverPosition}%</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">Slide to vertical center of focal item (0% = Top, 100% = Bottom).</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Slide or drag the banner image directly up/down (0% = Top, 100% = Bottom).</p>
                   </div>
                 )}
 
